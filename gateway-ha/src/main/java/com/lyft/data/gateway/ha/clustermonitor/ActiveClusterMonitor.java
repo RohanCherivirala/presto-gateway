@@ -1,6 +1,7 @@
 package com.lyft.data.gateway.ha.clustermonitor;
 
-import static com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler.UI_API_STATS_PATH;
+import static com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler.V1_CLUSTER_PATH;
+import static com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler.V1_CLUSTER_STATS_PATH;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
@@ -84,7 +85,8 @@ public class ActiveClusterMonitor implements Managed {
     clusterStats.setClusterId(backend.getName());
     // The V1_NODE_PATH is used in 331 while V1_CLUSTER_PATH is used in 318
     // TODO: Remove V1_CLUSTER_PATH once we're upgraded all clusters.
-    String[] possiblePaths = new String[] {UI_API_STATS_PATH, "/v1/cluster"};
+    String[] possiblePaths = new String[] {V1_CLUSTER_STATS_PATH, V1_CLUSTER_PATH};
+
     for (String path : possiblePaths) {
       String target = backend.getProxyTo() + path;
       HttpURLConnection conn = null;
