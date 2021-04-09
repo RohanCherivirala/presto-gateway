@@ -2,6 +2,8 @@ package com.lyft.data.gateway.ha.router;
 
 import com.lyft.data.gateway.ha.HaGatewayTestUtils;
 import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
+import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
+import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 
 import java.io.File;
@@ -25,7 +27,11 @@ public class TestQueryHistoryManager {
     String jdbcUrl = "jdbc:h2:" + tempH2DbDir.getAbsolutePath();
     DataStoreConfiguration db = new DataStoreConfiguration(jdbcUrl, "sa", "sa", "org.h2.Driver");
     JdbcConnectionManager connectionManager = new JdbcConnectionManager(db);
-    queryHistoryManager = new HaQueryHistoryManager(connectionManager) {};
+    HaGatewayConfiguration gatewayConf = new HaGatewayConfiguration();
+    RequestRouterConfiguration routerConf = new RequestRouterConfiguration();
+    routerConf.setHistorySize(5);
+    gatewayConf.setRequestRouter(routerConf);
+    queryHistoryManager = new HaQueryHistoryManager(gatewayConf, connectionManager) {};
   }
 
   public void testSubmitAndFetchQueryHistory() {
@@ -36,13 +42,13 @@ public class TestQueryHistoryManager {
     queryDetail.setSource("sqlWorkbench");
     queryDetail.setUser("test@ea.com");
     queryDetail.setQueryText("select 1");
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 10; i++) {
       queryDetail.setQueryId(String.valueOf(System.currentTimeMillis()));
       queryDetail.setCaptureTime(System.currentTimeMillis());
       queryHistoryManager.submitQueryDetail(queryDetail);
     }
     queryDetails = queryHistoryManager.fetchQueryHistory();
-    Assert.assertEquals(queryDetails.size(), 2);
+    Assert.assertEquals(queryDetails.size(), 5);
     Assert.assertTrue(queryDetails.get(0).getCaptureTime() > queryDetails.get(1).getCaptureTime());
   }
 }

@@ -1,5 +1,6 @@
 package com.lyft.data.gateway.ha.router;
 
+import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.persistence.dao.QueryHistory;
 import java.util.List;
@@ -8,9 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HaQueryHistoryManager implements QueryHistoryManager {
   private JdbcConnectionManager connectionManager;
+  private HaGatewayConfiguration configuration;
 
-  public HaQueryHistoryManager(JdbcConnectionManager connectionManager) {
+  public HaQueryHistoryManager(HaGatewayConfiguration conf,
+                               JdbcConnectionManager connectionManager) {
     this.connectionManager = connectionManager;
+    this.configuration = conf;
   }
 
   @Override
@@ -26,9 +30,10 @@ public class HaQueryHistoryManager implements QueryHistoryManager {
 
   @Override
   public List<QueryDetail> fetchQueryHistory() {
+    int limit = this.configuration.getRequestRouter().getHistorySize();
     try {
       connectionManager.open();
-      return QueryHistory.upcast(QueryHistory.findAll().limit(2000).orderBy("created desc"));
+      return QueryHistory.upcast(QueryHistory.findAll().limit(limit).orderBy("created desc"));
     } finally {
       connectionManager.close();
     }

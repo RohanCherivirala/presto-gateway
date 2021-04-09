@@ -35,7 +35,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     connectionManager = new JdbcConnectionManager(configuration.getDataStore());
     resourceGroupsManager = new HaResourceGroupsManager(connectionManager);
     gatewayBackendManager = new HaGatewayManager(connectionManager);
-    queryHistoryManager = new HaQueryHistoryManager(connectionManager);
+    queryHistoryManager = new HaQueryHistoryManager(configuration, connectionManager);
     routingManager =
         new HaRoutingManager(gatewayBackendManager, (HaQueryHistoryManager) queryHistoryManager);
   }

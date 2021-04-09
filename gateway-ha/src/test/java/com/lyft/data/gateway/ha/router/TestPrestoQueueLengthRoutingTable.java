@@ -4,7 +4,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.lyft.data.gateway.ha.HaGatewayTestUtils;
 import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
+import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import java.io.File;
 import java.util.HashMap;
@@ -37,8 +39,11 @@ public class TestPrestoQueueLengthRoutingTable {
         new HaGatewayTestUtils.TestConfig("", tempH2DbDir.getAbsolutePath()));
     DataStoreConfiguration db = new DataStoreConfiguration(jdbcUrl, "sa", "sa", "org.h2.Driver");
     JdbcConnectionManager connectionManager = new JdbcConnectionManager(db);
+    HaGatewayConfiguration gatewayConf = new HaGatewayConfiguration();
+    RequestRouterConfiguration routerConf = new RequestRouterConfiguration();
+    gatewayConf.setRequestRouter(routerConf);
     backendManager = new HaGatewayManager(connectionManager);
-    historyManager = new HaQueryHistoryManager(connectionManager) {
+    historyManager = new HaQueryHistoryManager(gatewayConf, connectionManager) {
     };
     routingTable = new PrestoQueueLengthRoutingTable(backendManager, historyManager);
 
