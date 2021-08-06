@@ -117,7 +117,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         // Fall back on client tags for routing
         if (Strings.isNullOrEmpty(routingGroup)) {
           routingGroup = Optional.ofNullable(request.getHeader(CLIENT_TAGS_HEADER))
-            .orElse(request.getHeader(ALTERNATE_CLIENT_TAGS_HEADER))
+            .orElse(request.getHeader(ALTERNATE_CLIENT_TAGS_HEADER));
         }
         if (!Strings.isNullOrEmpty(routingGroup)) {
           // This falls back on adhoc backend if there are no cluster found for the routing group.
