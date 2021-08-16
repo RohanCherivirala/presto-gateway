@@ -70,6 +70,7 @@ public class TestPrestoQueueLengthRoutingTable {
       proxyBackend.setRoutingGroup(groupName);
       proxyBackend.setName(backend);
       proxyBackend.setProxyTo(backend + ".presto.lyft.com");
+      proxyBackend.setExternalUrl("presto.lyft.com");
       backendManager.addBackend(proxyBackend);
     }
   }

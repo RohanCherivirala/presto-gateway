@@ -39,9 +39,9 @@ public class TestGatewayHaMulipleBackend {
     HaGatewayLauncher.main(args);
     // Now populate the backend
     HaGatewayTestUtils.setUpBackend(
-        "presto1", "http://localhost:" + backend1Port, true, "adhoc", routerPort);
+        "presto1", "http://localhost:" + backend1Port, "externalUrl", true, "adhoc", routerPort);
     HaGatewayTestUtils.setUpBackend(
-        "presto2", "http://localhost:" + backend2Port, true, "scheduled", routerPort);
+        "presto2", "http://localhost:" + backend2Port, "externalUrl", true, "scheduled", routerPort);
   }
 
   @Test
@@ -77,6 +77,17 @@ public class TestGatewayHaMulipleBackend {
             .build();
     Response response3 = httpClient.newCall(request3).execute();
     Assert.assertEquals(response3.body().string(), EXPECTED_RESPONSE1);
+
+    // When X-Trino-Routing-Group is set in header, query should be routed to cluster under the
+    // routing group
+    Request request4 =
+            new Request.Builder()
+                    .url("http://localhost:" + routerPort + "/v1/statement")
+                    .post(requestBody)
+                    .addHeader("X-Trino-Routing-Group", "scheduled")
+                    .build();
+    Response response4 = httpClient.newCall(request4).execute();
+    Assert.assertEquals(response4.body().string(), EXPECTED_RESPONSE2);
   }
 
   @AfterClass(alwaysRun = true)

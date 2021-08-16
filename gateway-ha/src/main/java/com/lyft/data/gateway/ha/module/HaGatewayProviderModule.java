@@ -11,9 +11,12 @@ import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.HaGatewayManager;
 import com.lyft.data.gateway.ha.router.HaQueryHistoryManager;
+import com.lyft.data.gateway.ha.router.HaResourceGroupsManager;
 import com.lyft.data.gateway.ha.router.HaRoutingManager;
 import com.lyft.data.gateway.ha.router.PrestoQueueLengthRoutingTable;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
+import com.lyft.data.gateway.ha.router.ResourceGroupsManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupSelector;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.proxyserver.ProxyHandler;
 import com.lyft.data.proxyserver.ProxyServer;
@@ -22,6 +25,7 @@ import io.dropwizard.setup.Environment;
 
 public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, Environment> {
 
+  private final ResourceGroupsManager resourceGroupsManager;
   private final GatewayBackendManager gatewayBackendManager;
   private final QueryHistoryManager queryHistoryManager;
   private final RoutingManager routingManager;
@@ -30,6 +34,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   public HaGatewayProviderModule(HaGatewayConfiguration configuration, Environment environment) {
     super(configuration, environment);
     connectionManager = new JdbcConnectionManager(configuration.getDataStore());
+    resourceGroupsManager = new HaResourceGroupsManager(connectionManager);
     gatewayBackendManager = new HaGatewayManager(connectionManager);
     queryHistoryManager = new HaQueryHistoryManager(configuration, connectionManager);
     routingManager =
@@ -43,7 +48,11 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
             .metrics()
             .meter(getConfiguration().getRequestRouter().getName() + ".requests");
     return new QueryIdCachingProxyHandler(
-        getQueryHistoryManager(), getRoutingManager(), getApplicationPort(), requestMeter);
+        getQueryHistoryManager(),
+        getRoutingManager(),
+        RoutingGroupSelector.byRoutingGroupHeader(),
+        getApplicationPort(),
+        requestMeter);
   }
 
   @Provides
@@ -61,11 +70,17 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
       routerProxyConfig.setSsl(routerConfiguration.isSsl());
       routerProxyConfig.setKeystorePath(routerConfiguration.getKeystorePath());
       routerProxyConfig.setKeystorePass(routerConfiguration.getKeystorePass());
-
+      routerProxyConfig.setPreserveHost("false");
       ProxyHandler proxyHandler = getProxyHandler();
       gateway = new ProxyServer(routerProxyConfig, proxyHandler);
     }
     return gateway;
+  }
+
+  @Provides
+  @Singleton
+  public ResourceGroupsManager getResourceGroupsManager() {
+    return this.resourceGroupsManager;
   }
 
   @Provides
@@ -91,5 +106,4 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   public JdbcConnectionManager getConnectionManager() {
     return this.connectionManager;
   }
-
 }
