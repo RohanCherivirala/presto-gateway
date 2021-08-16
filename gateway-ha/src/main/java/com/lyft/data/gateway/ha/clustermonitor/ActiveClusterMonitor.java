@@ -4,6 +4,7 @@ import static com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler.UI_API
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
+import com.lyft.data.gateway.ha.config.MonitorConfiguration;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import io.dropwizard.lifecycle.Managed;
@@ -26,18 +27,32 @@ import org.apache.http.HttpStatus;
 @Slf4j
 public class ActiveClusterMonitor implements Managed {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final int BACKEND_CONNECT_TIMEOUT_SECONDS = 15;
-  private static final int MONITOR_TASK_DELAY_SECS = 5;
+  public static final int BACKEND_CONNECT_TIMEOUT_SECONDS = 15;
+  public static final int MONITOR_TASK_DELAY_MIN = 1;
+  public static final int DEFAULT_THREAD_POOL_SIZE = 10;
 
-  @Inject
-  private List<PrestoClusterStatsObserver> clusterStatsObservers;
-  @Inject
-  private GatewayBackendManager gatewayBackendManager;
+  private final List<PrestoClusterStatsObserver> clusterStatsObservers;
+  private final GatewayBackendManager gatewayBackendManager;
+  private final int connectionTimeout;
+  private final int taskDelayMin;
 
   private volatile boolean monitorActive = true;
 
-  private ExecutorService executorService = Executors.newFixedThreadPool(10);
+  private ExecutorService executorService = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
   private ExecutorService singleTaskExecutor = Executors.newSingleThreadExecutor();
+
+  @Inject
+  public ActiveClusterMonitor(
+      List<PrestoClusterStatsObserver> clusterStatsObservers,
+      GatewayBackendManager gatewayBackendManager,
+      MonitorConfiguration monitorConfiguration) {
+    this.clusterStatsObservers = clusterStatsObservers;
+    this.gatewayBackendManager = gatewayBackendManager;
+    this.connectionTimeout = monitorConfiguration.getConnectionTimeout();
+    this.taskDelayMin = monitorConfiguration.getTaskDelayMin();
+    log.info("Running cluster monitor with connection timeout of {} and task delay of {}",
+        connectionTimeout, taskDelayMin);
+  }
 
   /**
    * Run an app that queries all active presto clusters for stats.
@@ -71,7 +86,7 @@ public class ActiveClusterMonitor implements Managed {
               log.error("Error performing backend monitor tasks", e);
             }
             try {
-              Thread.sleep(MONITOR_TASK_DELAY_SECS * 1000);
+              Thread.sleep(TimeUnit.MINUTES.toMillis(taskDelayMin));
             } catch (Exception e) {
               log.error("Error with monitor task", e);
             }
@@ -82,47 +97,41 @@ public class ActiveClusterMonitor implements Managed {
   private ClusterStats getPrestoClusterStats(ProxyBackendConfiguration backend) {
     ClusterStats clusterStats = new ClusterStats();
     clusterStats.setClusterId(backend.getName());
-    // The V1_NODE_PATH is used in 331 while V1_CLUSTER_PATH is used in 318
-    // TODO: Remove V1_CLUSTER_PATH once we're upgraded all clusters.
-    String[] possiblePaths = new String[] {UI_API_STATS_PATH, "/v1/cluster"};
-    for (String path : possiblePaths) {
-      String target = backend.getProxyTo() + path;
-      HttpURLConnection conn = null;
-      try {
-        URL url = new URL(target);
-        conn = (HttpURLConnection) url.openConnection();
-        conn.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(BACKEND_CONNECT_TIMEOUT_SECONDS));
-        conn.setReadTimeout((int) TimeUnit.SECONDS.toMillis(BACKEND_CONNECT_TIMEOUT_SECONDS));
-        conn.setRequestMethod(HttpMethod.GET);
-        conn.connect();
-        int responseCode = conn.getResponseCode();
-        if (responseCode == HttpStatus.SC_OK) {
-          clusterStats.setHealthy(true);
-          BufferedReader reader =
-              new BufferedReader(new InputStreamReader((InputStream) conn.getContent()));
-          StringBuilder sb = new StringBuilder();
-          String line;
-          while ((line = reader.readLine()) != null) {
-            sb.append(line + "\n");
-          }
-          HashMap<String, Object> result = OBJECT_MAPPER.readValue(sb.toString(), HashMap.class);
-          clusterStats.setNumWorkerNodes((int) result.get("activeWorkers"));
-          clusterStats.setQueuedQueryCount((int) result.get("queuedQueries"));
-          clusterStats.setRunningQueryCount((int) result.get("runningQueries"));
-          clusterStats.setBlockedQueryCount((int) result.get("blockedQueries"));
-          clusterStats.setProxyTo(backend.getProxyTo());
-          clusterStats.setRoutingGroup(backend.getRoutingGroup());
-          log.info("Host: {}, Cluster_stat: {}", System.getenv("HOSTNAME"), clusterStats);
-          break;
-        } else {
-          log.warn("Received non 200 response, response code: {}", responseCode);
+    String target = backend.getProxyTo() + UI_API_STATS_PATH;
+    HttpURLConnection conn = null;
+    try {
+      URL url = new URL(target);
+      conn = (HttpURLConnection) url.openConnection();
+      conn.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(connectionTimeout));
+      conn.setReadTimeout((int) TimeUnit.SECONDS.toMillis(connectionTimeout));
+      conn.setRequestMethod(HttpMethod.GET);
+      conn.connect();
+      int responseCode = conn.getResponseCode();
+      if (responseCode == HttpStatus.SC_OK) {
+        clusterStats.setHealthy(true);
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader((InputStream) conn.getContent()));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+          sb.append(line + "\n");
         }
-      } catch (Exception e) {
-        log.error("Error fetching cluster stats from [{}]", target, e);
-      } finally {
-        if (conn != null) {
-          conn.disconnect();
-        }
+        HashMap<String, Object> result = OBJECT_MAPPER.readValue(sb.toString(), HashMap.class);
+        clusterStats.setNumWorkerNodes((int) result.get("activeWorkers"));
+        clusterStats.setQueuedQueryCount((int) result.get("queuedQueries"));
+        clusterStats.setRunningQueryCount((int) result.get("runningQueries"));
+        clusterStats.setBlockedQueryCount((int) result.get("blockedQueries"));
+        clusterStats.setProxyTo(backend.getProxyTo());
+        clusterStats.setExternalUrl(backend.getExternalUrl());
+        clusterStats.setRoutingGroup(backend.getRoutingGroup());
+      } else {
+        log.warn("Received non 200 response, response code: {}", responseCode);
+      }
+    } catch (Exception e) {
+      log.error("Error fetching cluster stats from [{}]", target, e);
+    } finally {
+      if (conn != null) {
+        conn.disconnect();
       }
     }
     return clusterStats;
