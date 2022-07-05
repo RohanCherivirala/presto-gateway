@@ -6,6 +6,7 @@ import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.persistence.dao.GatewayBackend;
 
 import java.util.List;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -80,6 +81,28 @@ public class HaGatewayManager implements GatewayBackendManager {
     try {
       connectionManager.open();
       GatewayBackend.findFirst("name = ?", backendName).set("active", true).saveIt();
+    } finally {
+      connectionManager.close();
+    }
+  }
+
+  @Override
+  public void pauseRoutingGroup(String routingGroup) {
+    try {
+      connectionManager.open();
+      GatewayBackend.find("routing_group = ?", routingGroup)
+                    .forEach(model -> model.set("active", false).saveIt());
+    } finally {
+      connectionManager.close();
+    }
+  }
+
+  @Override
+  public void resumeRoutingGroup(String routingGroup) {
+    try {
+      connectionManager.open();
+      GatewayBackend.find("routing_group = ?", routingGroup)
+                    .forEach(model -> model.set("active", true).saveIt());
     } finally {
       connectionManager.close();
     }

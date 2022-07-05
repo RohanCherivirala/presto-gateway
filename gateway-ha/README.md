@@ -240,3 +240,21 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
     }
 ]
 ```
+
+### Pause a routing group
+
+`curl -X POST prestogateway.lyft.com/gateway/backend/pauseRoutingGroup/adhoc`
+
+Verify this by calling get active backends and checking that all in the routing group are absent
+```
+curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+```
+
+### Resume a routing group
+
+`curl -X POST prestogateway.lyft.com/gateway/backend/pauseRoutingGroup/adhoc`
+
+Verify this by calling get active backends and checking that all in the routing group are present
+```
+curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+```

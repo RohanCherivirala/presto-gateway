@@ -20,4 +20,8 @@ public interface GatewayBackendManager {
   void deactivateBackend(String backendName);
 
   void activateBackend(String backendName);
+
+  void pauseRoutingGroup(String routingGroup);
+
+  void resumeRoutingGroup(String routingGroup);
 }

@@ -26,18 +26,28 @@ public class GatewayResource {
     return Response.ok("ok").build();
   }
 
+  /**
+   * Gets all backends.
+   */
   @GET
   @Path("/backend/all")
   public Response getAllBackends() {
     return Response.ok(this.gatewayBackendManager.getAllBackends()).build();
   }
 
+  /**
+   * Gets all active backends.
+   */
   @GET
   @Path("/backend/active")
   public Response getActiveBackends() {
     return Response.ok(gatewayBackendManager.getAllActiveBackends()).build();
   }
 
+  /**
+   * Deactivate a specific cluster.
+   * @name Name of cluster
+   */
   @POST
   @Path("/backend/deactivate/{name}")
   public Response deactivateBackend(@PathParam("name") String name) {
@@ -50,6 +60,10 @@ public class GatewayResource {
     return Response.ok().build();
   }
 
+  /**
+   * Activate a specific cluster.
+   * @name Name of cluster
+   */
   @POST
   @Path("/backend/activate/{name}")
   public Response activateBackend(@PathParam("name") String name) {
@@ -59,6 +73,40 @@ public class GatewayResource {
       log.error(e.getMessage(), e);
       return throwError(e);
     }
+    return Response.ok().build();
+  }
+
+  /**
+   * Pause a specific routing group.
+   * @param name Name of routing group
+   */
+  @POST
+  @Path("/backend/pauseRoutingGroup/{name}")
+  public Response pauseRoutingGroup(@PathParam("name") String name) {
+    try {
+      this.gatewayBackendManager.pauseRoutingGroup(name);
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+      return throwError(e);
+    }
+
+    return Response.ok().build();
+  }
+
+  /**
+   * Resume a specific routing group.
+   * @name Name of routing group
+   */
+  @POST
+  @Path("/backend/resumeRoutingGroup/{name}")
+  public Response resumeRoutingGroup(@PathParam("name") String name) {
+    try {
+      this.gatewayBackendManager.resumeRoutingGroup(name);
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+      return throwError(e);
+    }
+
     return Response.ok().build();
   }
 
