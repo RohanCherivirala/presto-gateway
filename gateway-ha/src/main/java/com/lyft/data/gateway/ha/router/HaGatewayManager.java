@@ -2,9 +2,12 @@ package com.lyft.data.gateway.ha.router;
 
 import com.google.common.collect.ImmutableList;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.persistence.dao.GatewayBackend;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +70,57 @@ public class HaGatewayManager implements GatewayBackendManager {
   }
 
   @Override
+  public List<RoutingGroupConfiguration> getAllRoutingGroups(
+                                         List<ProxyBackendConfiguration> backends) {
+    HashMap<String, RoutingGroupConfiguration> mapOfGroups = new HashMap<>();
+
+    backends.forEach(backend -> {
+      String routingGroup = backend.getRoutingGroup();
+      mapOfGroups.putIfAbsent(routingGroup, new RoutingGroupConfiguration(routingGroup));
+      mapOfGroups.get(routingGroup).registerBackend(backend);
+    });
+
+    return new ArrayList<RoutingGroupConfiguration>(mapOfGroups.values());
+  }
+
+  @Override
+  public ProxyBackendConfiguration addBackend(ProxyBackendConfiguration backend) {
+    try {
+      connectionManager.open();
+      GatewayBackend.create(new GatewayBackend(), backend);
+    } finally {
+      connectionManager.close();
+    }
+    return backend;
+  }
+
+  @Override
+  public ProxyBackendConfiguration updateBackend(ProxyBackendConfiguration backend) {
+    try {
+      connectionManager.open();
+      GatewayBackend model = GatewayBackend.findFirst("name = ?", backend.getName());
+      if (model == null) {
+        GatewayBackend.create(model, backend);
+      } else {
+        GatewayBackend.update(model, backend);
+      }
+    } finally {
+      connectionManager.close();
+    }
+    return backend;
+  }
+
+  @Override
+  public void deleteBackend(String name) {
+    try {
+      connectionManager.open();
+      GatewayBackend.delete("name = ?", name);
+    } finally {
+      connectionManager.close();
+    }
+  }
+
+  @Override
   public void deactivateBackend(String backendName) {
     try {
       connectionManager.open();
@@ -103,40 +157,6 @@ public class HaGatewayManager implements GatewayBackendManager {
       connectionManager.open();
       GatewayBackend.find("routing_group = ?", routingGroup)
                     .forEach(model -> model.set("active", true).saveIt());
-    } finally {
-      connectionManager.close();
-    }
-  }
-
-  public ProxyBackendConfiguration addBackend(ProxyBackendConfiguration backend) {
-    try {
-      connectionManager.open();
-      GatewayBackend.create(new GatewayBackend(), backend);
-    } finally {
-      connectionManager.close();
-    }
-    return backend;
-  }
-
-  public ProxyBackendConfiguration updateBackend(ProxyBackendConfiguration backend) {
-    try {
-      connectionManager.open();
-      GatewayBackend model = GatewayBackend.findFirst("name = ?", backend.getName());
-      if (model == null) {
-        GatewayBackend.create(model, backend);
-      } else {
-        GatewayBackend.update(model, backend);
-      }
-    } finally {
-      connectionManager.close();
-    }
-    return backend;
-  }
-
-  public void deleteBackend(String name) {
-    try {
-      connectionManager.open();
-      GatewayBackend.delete("name = ?", name);
     } finally {
       connectionManager.close();
     }
