@@ -28,12 +28,22 @@
 
     <script type="application/javascript">
         $(document).ready(function () {
-            $('#routingGroups').DataTable({
-                    "ordering": false,
-                    "dom": '<"pull-left"f><"pull-right"l>tip',
-                    "width": '100%'
-                }
-            );
+            $('#routingGroups').dataTable( {
+                "ordering": false,
+                "dom": '<"pull-left"f><"pull-right"l>tip',
+                "width": '100%',
+                "columnDefs": [ {
+                    "targets":  3,
+                    "searchable": false
+                },
+                {
+                    "targets": '_all',
+                    "createdCell": function (td, cellData, rowData, row, col) {
+                        $(td).css('padding', '8px 18px')
+                    }
+                }]
+            } );
+            
             $("ul.chart").hBarChart();
             document.getElementById("routing_groups_tab").style.backgroundColor = "grey";
         });

@@ -29,13 +29,21 @@
 
     <script type="application/javascript">
         $(document).ready(function () {
-            $('#clusters').DataTable(
+            $('#clusters').dataTable( {
+                "ordering": false,
+                "dom": '<"pull-left"f><"pull-right"l>tip',
+                "width": '100%',
+                "columnDefs": [ {
+                    "targets":  3,
+                    "searchable": false
+                },
                 {
-                    "ordering": false,
-                    "dom": '<"pull-left"f><"pull-right"l>tip',
-                    "width": '100%'
-                }
-            );
+                    "targets": '_all',
+                    "createdCell": function (td, cellData, rowData, row, col) {
+                        $(td).css('padding', '8px 18px')
+                    }
+                }]
+            } );
 
             $("ul.chart").hBarChart();
             document.getElementById("active_backends_tab").style.backgroundColor = "grey";
