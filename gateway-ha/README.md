@@ -50,7 +50,7 @@ server /path/to/gateway-ha/src/test/resources/config-template.yml
 ``` 
 
 ## Gateway HA API
-# Note: A backend must have a valid routing group in order to be added successfully 
+#### Note: A backend must have a valid routing group in order to be added successfully 
 
 ### Get all backends behind the gateway
 
