@@ -5,7 +5,10 @@ import static com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler.UI_API
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
+
 import io.dropwizard.lifecycle.Managed;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -19,6 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import javax.ws.rs.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpStatus;
@@ -29,10 +34,9 @@ public class ActiveClusterMonitor implements Managed {
   private static final int BACKEND_CONNECT_TIMEOUT_SECONDS = 15;
   private static final int MONITOR_TASK_DELAY_SECS = 5;
 
-  @Inject
-  private List<PrestoClusterStatsObserver> clusterStatsObservers;
-  @Inject
-  private GatewayBackendManager gatewayBackendManager;
+  @Inject private List<PrestoClusterStatsObserver> clusterStatsObservers;
+  @Inject private GatewayBackendManager gatewayBackendManager;
+  @Inject private RoutingGroupsManager routingGroupsManager;
 
   private volatile boolean monitorActive = true;
 
@@ -47,10 +51,23 @@ public class ActiveClusterMonitor implements Managed {
         () -> {
           while (monitorActive) {
             try {
-              List<ProxyBackendConfiguration> activeClusters =
-                  gatewayBackendManager.getAllActiveBackends();
+              List<ProxyBackendConfiguration> clusters = gatewayBackendManager.getAllBackends();
+
+              List<RoutingGroupConfiguration> routingGroups = routingGroupsManager
+                  .getAllRoutingGroups(clusters);
+
+              /*
+               * Service all active cluster in unpaused routing groups
+               */
+              List<ProxyBackendConfiguration> clustersToService = clusters.stream()
+                  .filter(ProxyBackendConfiguration::isActive)
+                  .filter(cluster -> {
+                    return routingGroupsManager
+                           .isRoutingGroupActive(routingGroups, cluster.getRoutingGroup());
+                  }).collect(Collectors.toList());
+
               List<Future<ClusterStats>> futures = new ArrayList<>();
-              for (ProxyBackendConfiguration backend : activeClusters) {
+              for (ProxyBackendConfiguration backend : clustersToService) {
                 Future<ClusterStats> call =
                     executorService.submit(() -> getPrestoClusterStats(backend));
                 futures.add(call);
@@ -70,6 +87,7 @@ public class ActiveClusterMonitor implements Managed {
             } catch (Exception e) {
               log.error("Error performing backend monitor tasks", e);
             }
+
             try {
               Thread.sleep(MONITOR_TASK_DELAY_SECS * 1000);
             } catch (Exception e) {

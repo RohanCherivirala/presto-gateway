@@ -5,6 +5,8 @@ import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
+
 import io.dropwizard.views.View;
 
 import java.nio.charset.Charset;
@@ -30,6 +32,7 @@ public class GatewayViewResource {
   private static final long START_TIME = System.currentTimeMillis();
   @Inject private GatewayBackendManager gatewayBackendManager;
   @Inject private QueryHistoryManager queryHistoryManager;
+  @Inject private RoutingGroupsManager routingGroupsManager;
 
   /**
    * This function creates and returns a view that represents the homepage
@@ -122,7 +125,7 @@ public class GatewayViewResource {
   @Produces(MediaType.APPLICATION_JSON)
   public List<RoutingGroupConfiguration> getRoutingGroups() {
     List<ProxyBackendConfiguration> backends = gatewayBackendManager.getAllBackends();
-    return gatewayBackendManager.getAllRoutingGroups(backends);
+    return routingGroupsManager.getAllRoutingGroups(backends);
   }
 
   /**
@@ -168,7 +171,8 @@ public class GatewayViewResource {
   private void fillGatewayViewWithInfo(GatewayView view) {
     List<ProxyBackendConfiguration> backends = gatewayBackendManager.getAllBackends();
     view.setBackendConfigurations(backends);
-    view.setRoutingGroupConfigurations(gatewayBackendManager.getAllRoutingGroups(backends));
+    view.setRoutingGroupConfigurations(routingGroupsManager
+        .getAllRoutingGroups(backends));
 
     view.setQueryHistory(queryHistoryManager.fetchQueryHistory());
     view.setQueryDistribution(getQueryHistoryDistribution());

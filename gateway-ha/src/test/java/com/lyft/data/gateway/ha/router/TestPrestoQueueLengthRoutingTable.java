@@ -25,6 +25,7 @@ public class TestPrestoQueueLengthRoutingTable {
   PrestoQueueLengthRoutingTable routingTable;
   GatewayBackendManager backendManager;
   QueryHistoryManager historyManager;
+  RoutingGroupsManager routingGroupsManager;
   String[] mockRoutingGroups = {"adhoc", "scheduled"};
   String mockRoutingGroup = "adhoc";
   Map<String, Map<String, Integer>> clusterQueueMap;
@@ -45,7 +46,9 @@ public class TestPrestoQueueLengthRoutingTable {
     backendManager = new HaGatewayManager(connectionManager);
     historyManager = new HaQueryHistoryManager(gatewayConf, connectionManager) {
     };
-    routingTable = new PrestoQueueLengthRoutingTable(backendManager, historyManager);
+    routingGroupsManager = new RoutingGroupsManager(connectionManager);
+    routingTable = new PrestoQueueLengthRoutingTable(backendManager, historyManager, 
+                                                     routingGroupsManager);
 
     for (String grp : mockRoutingGroups) {
       addMockBackends(grp, NUM_BACKENDS, 0);

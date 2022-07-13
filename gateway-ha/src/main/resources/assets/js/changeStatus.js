@@ -25,7 +25,7 @@ function activateCluster(clusterName) {
  * Pauses the specific routing group
 */
 function pauseRoutingGroup(routingGroup) {
-    urlString = "/gateway/backend/pauseRoutingGroup/" + routingGroup
+    urlString = "/gateway/routingGroups/pauseRoutingGroup/" + routingGroup
     $.post(urlString, reloadOnResponse)
 }
 
@@ -33,6 +33,6 @@ function pauseRoutingGroup(routingGroup) {
  * Resumes the specific routing group
 */
 function resumeRoutingGroup(routingGroup) {
-    urlString = "/gateway/backend/resumeRoutingGroup/" + routingGroup
+    urlString = "/gateway/routingGroups/resumeRoutingGroup/" + routingGroup
     $.post(urlString, reloadOnResponse)
 }

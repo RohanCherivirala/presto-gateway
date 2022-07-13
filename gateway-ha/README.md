@@ -50,6 +50,7 @@ server /path/to/gateway-ha/src/test/resources/config-template.yml
 ``` 
 
 ## Gateway HA API
+# Note: A backend must have a valid routing group in order to be added successfully 
 
 ### Get all backends behind the gateway
 
@@ -76,16 +77,10 @@ server /path/to/gateway-ha/src/test/resources/config-template.yml
     }
 ]
 ```
-### Delete a backend from the gateway
+### Get all active backend behind the Gateway
 
+`curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool`
 ```
-curl -v -H "Content-Type: application/json" -d '{"name": "presto3"}' http://prestogateway.lyft.com/gateway/backend/modify/delete
-```
-
-Verify this by calling get active backends
-```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
-
 [
     {
         "active": true,
@@ -98,9 +93,14 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
         "name": "presto2",
         "proxyTo": "http://presto2.lyft.com",
         "routingGroup": "adhoc"
+    },
+    {
+        "active": true,
+        "name": "presto3",
+        "proxyTo": "http://presto3.lyft.com",
+        "routingGroup": "adhoc"
     }
 ]
-
 ```
 ### Add a backend to the gateway
 
@@ -164,10 +164,16 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
     }
 ]
 ```
-### Get all active backend behind the Gateway
+### Delete a backend from the gateway
 
-`curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool`
 ```
+curl -v -H "Content-Type: application/json" -d '{"name": "presto3"}' http://prestogateway.lyft.com/gateway/backend/modify/delete
+```
+
+Verify this by calling get active backends
+```
+curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+
 [
     {
         "active": true,
@@ -180,14 +186,9 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
         "name": "presto2",
         "proxyTo": "http://presto2.lyft.com",
         "routingGroup": "adhoc"
-    },
-    {
-        "active": true,
-        "name": "presto3",
-        "proxyTo": "http://presto3.lyft.com",
-        "routingGroup": "adhoc"
     }
 ]
+
 ```
 ### Deactivate a backend 
 
@@ -241,20 +242,22 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
 ]
 ```
 
+### Add a routing group
+
+`curl -X POST prestogateway.lyft.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
+
+### Update a routing group
+
+`curl -X PUT prestogateway.lyft.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
+
+### Delete a routing group
+
+`curl -X DELETE prestogateway.lyft.com/gateway/routingGroup -d '[name of routing group]'`
+
 ### Pause a routing group
 
-`curl -X POST prestogateway.lyft.com/gateway/backend/pauseRoutingGroup/adhoc`
-
-Verify this by calling get active backends and checking that all in the routing group are absent
-```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
-```
+`curl -X POST prestogateway.lyft.com/gateway/routingGroup/pauseRoutingGroup/[name of routing group]`
 
 ### Resume a routing group
 
-`curl -X POST prestogateway.lyft.com/gateway/backend/resumeRoutingGroup/adhoc`
-
-Verify this by calling get active backends and checking that all in the routing group are present
-```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
-```
+`curl -X POST prestogateway.lyft.com/gateway/routingGroup/resumeRoutingGroup/[name of routing group]`

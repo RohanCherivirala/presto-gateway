@@ -1,5 +1,7 @@
 package com.lyft.data.gateway.ha.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 import lombok.ToString;
 
@@ -11,14 +13,28 @@ import lombok.ToString;
 public class RoutingGroupConfiguration {
   private String name;
   private boolean active;
-  private int groupSize;
+  private int numberOfClusters;
   private int activeClusters;
 
-  public RoutingGroupConfiguration(String name) {
+  /**
+   * Constructor specifying name and active state of routing group.
+   * @param name Name of routing group
+   * @param active Activate state of routing group
+   */
+  public RoutingGroupConfiguration(@JsonProperty("name") String name, 
+      @JsonProperty("active") boolean active) {
     this.name = name;
-    active = false;
-    groupSize = 0;
+    this.active = active;
+    numberOfClusters = 0;
     activeClusters = 0;
+  }
+
+  /**
+   * Constructor specifying name of routing group.
+   * @param name Name of routing group
+   */
+  public RoutingGroupConfiguration(String name) {
+    this(name, true);
   }
 
   /**
@@ -27,10 +43,9 @@ public class RoutingGroupConfiguration {
    */
   public void registerBackend(ProxyBackendConfiguration backend) {
     if (backend.isActive()) {
-      active = true;
       activeClusters++;
     }
 
-    groupSize++;
+    numberOfClusters++;
   }
 }

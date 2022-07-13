@@ -64,7 +64,7 @@
             <tr>
                 <th>Group Name</th>
                 <th>Active Clusters</th>
-                <th>Group Size</th>
+                <th>Number Of Clusters</th>
                 <th>Change Status</th>
                 <th>Status</th>
             </tr>
@@ -75,7 +75,7 @@
                 <tr>
                     <td> ${routingGroup.name}</td>
                     <td> ${routingGroup.activeClusters}</td>
-                    <td> ${routingGroup.groupSize}</td>
+                    <td> ${routingGroup.numberOfClusters}</td>
 
                     <#if routingGroup.active == true>
                         <td><button onclick = 'pauseRoutingGroup("${routingGroup.name}")'>Pause Routing Group</button></td>

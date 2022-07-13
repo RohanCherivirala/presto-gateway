@@ -2,12 +2,9 @@ package com.lyft.data.gateway.ha.router;
 
 import com.google.common.collect.ImmutableList;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
-import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.persistence.dao.GatewayBackend;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
@@ -70,20 +67,6 @@ public class HaGatewayManager implements GatewayBackendManager {
   }
 
   @Override
-  public List<RoutingGroupConfiguration> getAllRoutingGroups(
-                                         List<ProxyBackendConfiguration> backends) {
-    HashMap<String, RoutingGroupConfiguration> mapOfGroups = new HashMap<>();
-
-    backends.forEach(backend -> {
-      String routingGroup = backend.getRoutingGroup();
-      mapOfGroups.putIfAbsent(routingGroup, new RoutingGroupConfiguration(routingGroup));
-      mapOfGroups.get(routingGroup).registerBackend(backend);
-    });
-
-    return new ArrayList<RoutingGroupConfiguration>(mapOfGroups.values());
-  }
-
-  @Override
   public ProxyBackendConfiguration addBackend(ProxyBackendConfiguration backend) {
     try {
       connectionManager.open();
@@ -107,6 +90,7 @@ public class HaGatewayManager implements GatewayBackendManager {
     } finally {
       connectionManager.close();
     }
+    
     return backend;
   }
 
@@ -135,28 +119,6 @@ public class HaGatewayManager implements GatewayBackendManager {
     try {
       connectionManager.open();
       GatewayBackend.findFirst("name = ?", backendName).set("active", true).saveIt();
-    } finally {
-      connectionManager.close();
-    }
-  }
-
-  @Override
-  public void pauseRoutingGroup(String routingGroup) {
-    try {
-      connectionManager.open();
-      GatewayBackend.find("routing_group = ?", routingGroup)
-                    .forEach(model -> model.set("active", false).saveIt());
-    } finally {
-      connectionManager.close();
-    }
-  }
-
-  @Override
-  public void resumeRoutingGroup(String routingGroup) {
-    try {
-      connectionManager.open();
-      GatewayBackend.find("routing_group = ?", routingGroup)
-                    .forEach(model -> model.set("active", true).saveIt());
     } finally {
       connectionManager.close();
     }

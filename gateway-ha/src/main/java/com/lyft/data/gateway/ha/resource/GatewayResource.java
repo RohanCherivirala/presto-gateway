@@ -2,6 +2,7 @@ package com.lyft.data.gateway.ha.resource;
 
 import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -18,8 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 @Path("/gateway")
 @Produces(MediaType.APPLICATION_JSON)
 public class GatewayResource {
-
   @Inject private GatewayBackendManager gatewayBackendManager;
+  @Inject private RoutingGroupsManager routingGroupsManager;
 
   @GET
   public Response ok(@Context Request request) {
@@ -77,43 +78,12 @@ public class GatewayResource {
   }
 
   /**
-   * Pause a specific routing group.
-   * @param name Name of routing group
+   * Method to throw an error response.
+   * @param e Error called
+   * @return Response containing error
    */
-  @POST
-  @Path("/backend/pauseRoutingGroup/{name}")
-  public Response pauseRoutingGroup(@PathParam("name") String name) {
-    try {
-      this.gatewayBackendManager.pauseRoutingGroup(name);
-    } catch (Exception e) {
-      log.error(e.getMessage(), e);
-      return throwError(e);
-    }
-
-    return Response.ok().build();
-  }
-
-  /**
-   * Resume a specific routing group.
-   * @name Name of routing group
-   */
-  @POST
-  @Path("/backend/resumeRoutingGroup/{name}")
-  public Response resumeRoutingGroup(@PathParam("name") String name) {
-    try {
-      this.gatewayBackendManager.resumeRoutingGroup(name);
-    } catch (Exception e) {
-      log.error(e.getMessage(), e);
-      return throwError(e);
-    }
-
-    return Response.ok().build();
-  }
-
-  private Response throwError(Exception e) {
-    return Response.status(Response.Status.NOT_FOUND)
-        .entity(e.getMessage())
-        .type("text/plain")
+  public static Response throwError(Exception e) {
+    return Response.status(Response.Status.UNSUPPORTED_MEDIA_TYPE)
         .build();
   }
 }
