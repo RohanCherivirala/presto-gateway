@@ -1,7 +1,10 @@
 package com.lyft.data.gateway.ha.handler;
 
 import com.codahale.metrics.Meter;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
@@ -9,7 +12,9 @@ import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.proxyserver.ProxyHandler;
 import com.lyft.data.proxyserver.wrapper.MultiReadHttpServletRequest;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -40,6 +45,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   public static final String ALTERNATE_ROUTING_GROUP_HEADER = "X-Presto-Routing-Group";
   public static final String CLIENT_TAGS_HEADER = "X-Trino-Client-Tags";
   public static final String ALTERNATE_CLIENT_TAGS_HEADER = "X-Presto-Client-Tags";
+  public static final String CONTENT_LENGTH_HEADER = "Content-Length";
   public static final String ADHOC_ROUTING_GROUP = "adhoc";
   private static final int QUERY_TEXT_LENGTH_FOR_HISTORY = 200;
 
@@ -66,6 +72,12 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
   @Override
   public void preConnectionHook(HttpServletRequest request, Request proxyRequest) {
+
+    log.debug("\n\nIN PRE CONN HOOK FOR " + request.getRequestURL() + "\n\n");
+    debugLogHeaders(proxyRequest);
+    debugLogHeaders(request);
+    System.out.println("\n\n");
+
     if (request.getMethod().equals(HttpMethod.POST)
         && request.getRequestURI().startsWith(V1_STATEMENT_PATH)) {
       requestMeter.mark();
@@ -101,6 +113,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
   @Override
   public String rewriteTarget(HttpServletRequest request) {
+    log.debug("\n\nREWRITING TARGET\n\n");
+
     /* Here comes the load balancer / gateway */
     String backendAddress = "http://localhost:" + serverApplicationPort;
 
@@ -211,50 +225,117 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
       int offset,
       int length,
       Callback callback) {
+        
+    log.debug("\n\nIN Post CONN HOOK FOR " + request.getRequestURL() + "\n\n");
+    debugLogHeaders(request);
+    debugLogHeaders(response);
+    log.debug("Response status: " + response.getStatus() + "\n\n");
+
     try {
       String requestPath = request.getRequestURI();
-      if (requestPath.startsWith(V1_STATEMENT_PATH)
-          && request.getMethod().equals(HttpMethod.POST)) {
-        String output;
+
+      if (requestPath.startsWith(V1_STATEMENT_PATH)) {
         boolean isGZipEncoding = isGZipEncoding(response);
+        String output = "";
+
         if (isGZipEncoding) {
           output = plainTextFromGz(buffer);
         } else {
           output = new String(buffer);
         }
+
         log.debug("Response output [{}]", output);
 
-        QueryHistoryManager.QueryDetail queryDetail = getQueryDetailsFromRequest(request);
-        log.debug("Proxy destination : {}", queryDetail.getBackendUrl());
+        // This header is only contained on complete responses
+        if (response.containsHeader(CONTENT_LENGTH_HEADER)) {
+          try {
+            JsonNode root = OBJECT_MAPPER.readTree(output);
+  
+            if (root.at("/error").isMissingNode()) {
+              JsonNode nextUriNode = root.at("/nextUri");
+              if (!nextUriNode.isMissingNode()) {
+                String nextUriString = nextUriNode.asText();
+                log.debug("\nNEXT URI: {}\n", nextUriString);
+                // Edit nexturi for testing
+                nextUriString = nextUriString.substring(0, nextUriString.lastIndexOf("/") + 1);
+                ((ObjectNode) root).put("nextUri", nextUriString + "1");
+                log.debug("\nNEW OUTPUT INFO: {}\n", OBJECT_MAPPER.writeValueAsString(root));
+                log.debug("Old buf len: {}; Old len: {}", buffer.length, length);
 
-        if (response.getStatus() == HttpStatus.OK_200) {
-          HashMap<String, String> results = OBJECT_MAPPER.readValue(output, HashMap.class);
-          queryDetail.setQueryId(results.get("id"));
+                if (isGZipEncoding(response)) {
+                  buffer = compressToGz(OBJECT_MAPPER.writeValueAsString(root));
+                } else {
+                  buffer = (OBJECT_MAPPER.writeValueAsString(root) + "\n")
+                                         .getBytes(Charset.defaultCharset());
+                }
+                
+                length = buffer.length;
+                response.setContentLengthLong(length);
+                log.debug("New buf len: {}", length);
+              }
 
-          if (!Strings.isNullOrEmpty(queryDetail.getQueryId())) {
-            routingManager.setBackendForQueryId(
-                queryDetail.getQueryId(), queryDetail.getBackendUrl());
-            log.debug(
-                "QueryId [{}] mapped with proxy [{}]",
-                queryDetail.getQueryId(),
-                queryDetail.getBackendUrl());
-          } else {
-            log.debug("QueryId [{}] could not be cached", queryDetail.getQueryId());
+              log.debug("\n\nNo Error Occurred!!!\n\n");
+            } else {
+              int errorCode = root.at("/error/errorCode").asInt();
+              String errorName = root.at("/error/errorName").asText();
+              String errorType = root.at("/error/errorType").asText();
+        
+              log.debug("\n\nError Details:");
+              log.debug(String.format("Error Code: %s ErrorName: %s Error Type: %s\n\n", 
+                                errorCode, errorName, errorType));
+  
+              // response.setStatus(503);
+            }
+          } catch (JsonParseException | EOFException e) {
+            log.debug("Response does not contain complete information");
           }
-        } else {
-          log.error(
-              "Non OK HTTP Status code with response [{}] , Status code [{}]",
-              output,
-              response.getStatus());
         }
-        // Saving history at gateway.
-        queryHistoryManager.submitQueryDetail(queryDetail);
-      } else {
-        log.debug("SKIPPING For {}", requestPath);
-      }
+
+        if (request.getMethod().equals(HttpMethod.POST)) {
+          if (Strings.isNullOrEmpty(output)) {
+            if (isGZipEncoding) {
+              output = plainTextFromGz(buffer);
+            } else {
+              output = new String(buffer);
+            }
+          }
+
+          log.debug("Response output [{}]", output);
+
+          // Store query information used to start call
+          QueryHistoryManager.QueryDetail queryDetail = getQueryDetailsFromRequest(request);
+          log.debug("Proxy destination : {}", queryDetail.getBackendUrl());
+  
+          if (response.getStatus() == HttpStatus.OK_200) {
+            HashMap<String, String> results = OBJECT_MAPPER.readValue(output, HashMap.class);
+            queryDetail.setQueryId(results.get("id"));
+  
+            if (!Strings.isNullOrEmpty(queryDetail.getQueryId())) {
+              routingManager.setBackendForQueryId(
+                  queryDetail.getQueryId(), queryDetail.getBackendUrl());
+              log.debug(
+                  "QueryId [{}] mapped with proxy [{}]",
+                  queryDetail.getQueryId(),
+                  queryDetail.getBackendUrl());
+            } else {
+              log.debug("QueryId [{}] could not be cached", queryDetail.getQueryId());
+            }
+          } else {
+            log.error(
+                "Non OK HTTP Status code with response [{}] , Status code [{}]",
+                output,
+                response.getStatus());
+          }
+          // Saving history at gateway.
+          queryHistoryManager.submitQueryDetail(queryDetail);
+        } else {
+          log.debug("SKIPPING For {}", requestPath);
+        }
+      }      
     } catch (Exception e) {
       log.error("Error in proxying falling back to super call", e);
     }
+
     super.postConnectionHook(request, response, buffer, offset, length, callback);
   }
 

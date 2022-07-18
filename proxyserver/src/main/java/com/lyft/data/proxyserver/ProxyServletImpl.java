@@ -75,6 +75,7 @@ public class ProxyServletImpl extends ProxyServlet.Transparent {
    * @param length
    * @param callback
    */
+  @Override
   protected void onResponseContent(
       HttpServletRequest request,
       HttpServletResponse response,
@@ -88,6 +89,10 @@ public class ProxyServletImpl extends ProxyServlet.Transparent {
         this._log.debug(
             "[{}] proxying content to downstream: [{}] bytes", this.getRequestId(request), length);
       }
+
+      this._log.debug("\n\nPROXY HANDLER IS {}\n\n", proxyHandler == null ? "NULL" : "NOT NULL");
+      this._log.debug("\nOFFSET: {} \n", offset);
+
       if (this.proxyHandler != null) {
         proxyHandler.postConnectionHook(request, response, buffer, offset, length, callback);
       } else {
@@ -96,5 +101,17 @@ public class ProxyServletImpl extends ProxyServlet.Transparent {
     } catch (Throwable var9) {
       callback.failed(var9);
     }
+  }
+
+  @Override
+  protected void onProxyResponseSuccess(
+      HttpServletRequest clientRequest, 
+      HttpServletResponse proxyResponse, 
+      Response serverResponse) {
+    if (proxyHandler != null) {
+      proxyHandler.onCompleteHook(clientRequest, proxyResponse, serverResponse);
+    }
+
+    super.onProxyResponseSuccess(clientRequest, proxyResponse, serverResponse);
   }
 }

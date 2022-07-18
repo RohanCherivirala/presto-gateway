@@ -2,12 +2,14 @@ package com.lyft.data.proxyserver;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -15,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHeaders;
 import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.util.Callback;
 
@@ -59,6 +62,26 @@ public class ProxyHandler {
       callback.succeeded();
     } catch (Throwable var9) {
       callback.failed(var9);
+    }
+  }
+
+  protected void onCompleteHook(
+      HttpServletRequest request, 
+      HttpServletResponse proxyResponse, 
+      Response serverResponse) {
+    log.debug("\n\n\n\nREACHED COMPLETION \n\n\n\n");
+
+    debugLogHeaders(request);
+    debugLogHeaders(proxyResponse);
+    debugLogHeaders(serverResponse);
+  }
+
+  protected void debugLogHeaders(Response response) {
+    if (log.isDebugEnabled()) {
+      log.debug("-------Server Response HTTP headers---------");
+      response.getHeaders().stream().forEach(head -> {
+        log.debug(head.toString());
+      });
     }
   }
 
@@ -110,10 +133,12 @@ public class ProxyHandler {
     if ((compressed == null) || (compressed.length == 0)) {
       return "";
     }
+
     if (isCompressed(compressed)) {
       final GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(compressed));
       final BufferedReader bufferedReader =
           new BufferedReader(new InputStreamReader(gis, Charset.defaultCharset()));
+          
       String line;
       while ((line = bufferedReader.readLine()) != null) {
         outStr.append(line);
@@ -122,7 +147,21 @@ public class ProxyHandler {
     } else {
       outStr.append(compressed);
     }
+    
     return outStr.toString();
+  }
+
+  protected byte[] compressToGz(String str) throws IOException {
+    if (str == null || str.length() == 0) {
+      return new byte[] {};
+    }
+
+    ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+    GZIPOutputStream gzip = new GZIPOutputStream(byteStream);
+    gzip.write(str.getBytes(Charset.defaultCharset()));
+    gzip.close();
+
+    return byteStream.toByteArray();
   }
 
   protected boolean isCompressed(final byte[] compressed) {
