@@ -18,7 +18,7 @@ Now open mysql console and install the presto-gateway tables:
 mysql -uroot -proot123 -h127.0.0.1 -Dprestogateway
 
 ```
-Once logged in to mysql console, please run [gateway-ha-persistence.sql](/gateway-ha/src/main/resources/gateway-ha-persistence.sql) to populate the tables.
+Once logged in to mysql console, please run [gateway-ha-persistence.sql](/gateway-ha/src/migrations/gateway-ha.sql) to populate the tables.
 
 
 Step 2: Edit the configuration `gateway-ha-config.yml`
