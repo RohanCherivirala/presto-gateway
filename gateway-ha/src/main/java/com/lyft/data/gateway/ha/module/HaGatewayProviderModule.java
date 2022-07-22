@@ -4,6 +4,7 @@ import com.codahale.metrics.Meter;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.lyft.data.baseapp.AppModule;
+import com.lyft.data.gateway.ha.caching.CachingDatabaseManager;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
 import com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler;
@@ -26,6 +27,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   private final QueryHistoryManager queryHistoryManager;
   private final RoutingManager routingManager;
   private final JdbcConnectionManager connectionManager;
+  private final CachingDatabaseManager cachingManager;
 
   public HaGatewayProviderModule(HaGatewayConfiguration configuration, Environment environment) {
     super(configuration, environment);
@@ -35,6 +37,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     routingManager =
         new PrestoQueueLengthRoutingTable(gatewayBackendManager,
                 (HaQueryHistoryManager) queryHistoryManager);
+    cachingManager = new CachingDatabaseManager(configuration);
   }
 
   protected ProxyHandler getProxyHandler() {
@@ -92,4 +95,9 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     return this.connectionManager;
   }
 
+  @Provides
+  @Singleton
+  public CachingDatabaseManager getCachingDatabaseManager() {
+    return this.cachingManager;
+  }
 }

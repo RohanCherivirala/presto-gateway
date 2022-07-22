@@ -28,7 +28,7 @@
         <reflections.version>0.9.10</reflections.version>
         <ehcache.version>3.8.1</ehcache.version>
         <activejdbc.version>2.3</activejdbc.version>
-        <mysqlconnector.version>8.0.17</mysqlconnector.version>
+        <mysqlconnector.version>8.0.29</mysqlconnector.version>
         <environments>development</environments>
         <app.main.class>com.lyft.data.gateway.ha.HaGatewayLauncher</app.main.class>
     </properties>
@@ -98,7 +98,7 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.17</version>
+            <version>8.0.29</version>
         </dependency>
         <!-- Test deps -->
         <dependency>
