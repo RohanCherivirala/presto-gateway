@@ -35,7 +35,12 @@ public class ClusterStateListenerModule extends AppModule<HaGatewayConfiguration
   public List<PrestoClusterStatsObserver> getClusterStatsObservers(RoutingManager routingManager) {
     observers = new ArrayList<>();
     NotifierConfiguration notifierConfiguration = getConfiguration().getNotifier();
-    observers.add(new HealthChecker(new EmailNotifier(notifierConfiguration)));
+
+    // Add email notifier if enabled
+    if (notifierConfiguration != null) {
+      observers.add(new HealthChecker(new EmailNotifier(notifierConfiguration)));
+    }
+
     observers.add(new PrestoQueueLengthChecker((PrestoQueueLengthRoutingTable)routingManager));
     return observers;
   }
