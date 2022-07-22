@@ -113,6 +113,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
   @Override
   public String rewriteTarget(HttpServletRequest request) {
+    debugLogHeaders(request);
     log.debug("\n\nREWRITING TARGET\n\n");
 
     /* Here comes the load balancer / gateway */
@@ -252,7 +253,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
             JsonNode root = OBJECT_MAPPER.readTree(output);
   
             if (root.at("/error").isMissingNode()) {
-              JsonNode nextUriNode = root.at("/nextUri");
+              JsonNode nextUriNode = root.at("/nextUrqwfqf");
               if (!nextUriNode.isMissingNode()) {
                 String nextUriString = nextUriNode.asText();
                 log.debug("\nNEXT URI: {}\n", nextUriString);
