@@ -1,4 +1,10 @@
-package com.lyft.data.proxyserver;
+package com.lyft.data.server;
+
+import com.lyft.data.server.config.GatewayServerConfiguration;
+import com.lyft.data.server.filter.RequestFilter;
+import com.lyft.data.server.handler.ServerHandler;
+import com.lyft.data.server.servlets.ClientServletImpl;
+import com.lyft.data.server.servlets.ProxyServletImpl;
 
 import java.io.Closeable;
 import java.io.File;
@@ -25,19 +31,19 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 @Slf4j
-public class ProxyServer implements Closeable {
+public class GatewayServer implements Closeable {
   private final Server server;
-  private final ProxyHandler proxyHandler;
+  private final ServerHandler serverHandler;
   private ServletContextHandler context;
 
-  public ProxyServer(ProxyServerConfiguration config, ProxyHandler proxyHandler) {
+  public GatewayServer(GatewayServerConfiguration config, ServerHandler proxyHandler) {
     this.server = new Server();
     this.server.setStopAtShutdown(true);
-    this.proxyHandler = proxyHandler;
+    this.serverHandler = proxyHandler;
     this.setupContext(config);
   }
 
-  private void setupContext(ProxyServerConfiguration config) {
+  private void setupContext(GatewayServerConfiguration config) {
     ServerConnector connector = null;
     HttpConfiguration httpConfig = new HttpConfiguration();
     // Increase Header buffer size
@@ -77,21 +83,27 @@ public class ProxyServer implements Closeable {
     } else {
       connector = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
     }
+    
+    // Set up connector properties
     connector.setHost("0.0.0.0");
     connector.setPort(config.getLocalPort());
     connector.setName(config.getName());
     connector.setAccepting(true);
     this.server.addConnector(connector);
 
-    // Setup proxy handler to handle CONNECT methods
-    ConnectHandler proxyConnectHandler = new ConnectHandler();
-    this.server.setHandler(proxyConnectHandler);
+    // Set up connection handler
+    ConnectHandler connectHandler = new ConnectHandler();
+    this.server.setHandler(connectHandler);
 
+    this.context =
+        new ServletContextHandler(connectHandler, "/", ServletContextHandler.SESSIONS);
+
+    // Set up proxy servlet
     ProxyServletImpl proxy = new ProxyServletImpl();
-    if (proxyHandler != null) {
-      proxy.setProxyHandler(proxyHandler);
+    if (serverHandler != null) {
+      proxy.setProxyHandler(serverHandler);
     }
-
+    
     ServletHolder proxyServlet = new ServletHolder(config.getName(), proxy);
 
     proxyServlet.setInitParameter("proxyTo", config.getProxyTo());
@@ -99,10 +111,19 @@ public class ProxyServer implements Closeable {
     proxyServlet.setInitParameter("trustAll", config.getTrustAll());
     proxyServlet.setInitParameter("preserveHost", config.getPreserveHost());
 
-    // Setup proxy servlet
-    this.context =
-        new ServletContextHandler(proxyConnectHandler, "/", ServletContextHandler.SESSIONS);
     this.context.addServlet(proxyServlet, "/*");
+
+    // Set up client servlet 
+    ClientServletImpl client = new ClientServletImpl();
+    if (serverHandler != null) {
+      client.setServerHandler(serverHandler);
+    }
+
+    ServletHolder clientServlet = new ServletHolder("Client Servlet", client);
+    
+    this.context.addServlet(clientServlet, "/clientServer/*");
+
+    // Adds request filter
     this.context.addFilter(RequestFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
   }
 

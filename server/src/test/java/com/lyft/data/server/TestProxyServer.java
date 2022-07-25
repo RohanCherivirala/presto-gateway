@@ -1,7 +1,9 @@
-package com.lyft.data.proxyserver;
+package com.lyft.data.server;
 
 import static org.testng.Assert.assertEquals;
 
+import com.lyft.data.server.config.GatewayServerConfiguration;
+import com.lyft.data.server.handler.ServerHandler;
 import com.squareup.okhttp.mockwebserver.MockResponse;
 import com.squareup.okhttp.mockwebserver.MockWebServer;
 import com.squareup.okhttp.mockwebserver.RecordedRequest;
@@ -29,8 +31,8 @@ public class TestProxyServer {
     backend.play(backendPort);
 
     int serverPort = backendPort + 1;
-    ProxyServerConfiguration config = buildConfig(backend.getUrl("/").toString(), serverPort);
-    ProxyServer proxyServer = new ProxyServer(config, new ProxyHandler());
+    GatewayServerConfiguration config = buildConfig(backend.getUrl("/").toString(), serverPort);
+    GatewayServer proxyServer = new GatewayServer(config, new ServerHandler());
 
     try {
       proxyServer.start();
@@ -54,8 +56,8 @@ public class TestProxyServer {
     backend.play(backendPort);
 
     int serverPort = backendPort + 1;
-    ProxyServerConfiguration config = buildConfig(backend.getUrl("/").toString(), serverPort);
-    ProxyServer proxyServer = new ProxyServer(config, new ProxyHandler());
+    GatewayServerConfiguration config = buildConfig(backend.getUrl("/").toString(), serverPort);
+    GatewayServer proxyServer = new GatewayServer(config, new ServerHandler());
 
     try {
       proxyServer.start();
@@ -75,8 +77,8 @@ public class TestProxyServer {
     }
   }
 
-  private ProxyServerConfiguration buildConfig(String backendUrl, int localPort) {
-    ProxyServerConfiguration config = new ProxyServerConfiguration();
+  private GatewayServerConfiguration buildConfig(String backendUrl, int localPort) {
+    GatewayServerConfiguration config = new GatewayServerConfiguration();
     config.setName("MockBackend");
     config.setPrefix("/");
     config.setPreserveHost("true");

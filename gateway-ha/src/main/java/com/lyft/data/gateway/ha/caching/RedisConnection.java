@@ -7,8 +7,6 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.reactive.RedisStringReactiveCommands;
 
-import java.util.Arrays;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -23,11 +21,8 @@ public class RedisConnection extends CachingDatabaseConnection {
           configuration.getCachingDatabase().getHost(),
           configuration.getCachingDatabase().getPort()));
       log.debug("Redis connection successfully created");
-
-      testConnection();
     } catch (Exception e) {
-      log.debug("Error occured while creating RedisConnection");
-      log.debug("Error info: {}", Arrays.toString(e.getStackTrace()));
+      log.error("Error occured while creating RedisConnection", e);
     }
   }
 
@@ -39,15 +34,16 @@ public class RedisConnection extends CachingDatabaseConnection {
     client = RedisClient.create(redisString);
   }
 
-  public void testConnection() {
+  @Override
+  public String get(String key) {
     StatefulRedisConnection<String, String> connection = null;
 
     try {
       connection = client.connect();
       RedisStringReactiveCommands<String, String> reactive = connection.reactive();
 
-      Mono<String> get = reactive.get("testKey");
-      log.debug("\n\nResponse from redis: {}\n\n", get.block());
+      Mono<String> response = reactive.get(key);
+      return response.block();
     } finally {
       if (connection != null) {
         connection.close();
@@ -55,6 +51,28 @@ public class RedisConnection extends CachingDatabaseConnection {
     }
   }
 
+  @Override
+  public void set(String key, String value) {
+    StatefulRedisConnection<String, String> connection = null;
+
+    try {
+      connection = client.connect();
+      RedisStringReactiveCommands<String, String> reactive = connection.reactive();
+
+      Mono<String> response = reactive.set(key, value);
+      response.block();
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
+  }
+
+  @Override
+  public void testConnection() {
+    log.debug("\n\nResponse from redis: {}\n\n", get("testKey"));
+  }
+ 
   @Override
   public void shutdown() {
     client.shutdown();

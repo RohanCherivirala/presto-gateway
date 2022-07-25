@@ -4,7 +4,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
-import com.lyft.data.proxyserver.ProxyServerConfiguration;
+import com.lyft.data.server.config.GatewayServerConfiguration;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -115,7 +115,7 @@ public abstract class RoutingManager {
 
     Map<String, Future<Integer>> responseCodes = new HashMap<>();
     try {
-      for (ProxyServerConfiguration backend : backends) {
+      for (GatewayServerConfiguration backend : backends) {
         String target = backend.getProxyTo() + "/v1/query/" + queryId;
 
         Future<Integer> call =

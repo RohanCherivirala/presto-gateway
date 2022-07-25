@@ -1,4 +1,4 @@
-package com.lyft.data.proxyserver.wrapper;
+package com.lyft.data.server.wrapper;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;

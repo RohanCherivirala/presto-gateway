@@ -1,6 +1,6 @@
 package com.lyft.data.gateway.ha.clustermonitor;
 
-import static com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler.UI_API_STATS_PATH;
+import static com.lyft.data.gateway.ha.handler.QueryIdCachingServerHandler.UI_API_STATS_PATH;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;

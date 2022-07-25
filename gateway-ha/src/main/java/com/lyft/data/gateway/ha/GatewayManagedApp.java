@@ -2,11 +2,12 @@ package com.lyft.data.gateway.ha;
 
 import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.caching.CachingDatabaseManager;
-import com.lyft.data.proxyserver.ProxyServer;
+import com.lyft.data.server.GatewayServer;
+
 import io.dropwizard.lifecycle.Managed;
 
 public class GatewayManagedApp implements Managed {
-  @Inject private ProxyServer gateway;
+  @Inject private GatewayServer gateway;
   @Inject private CachingDatabaseManager cachingDatabaseManager;
 
   @Override

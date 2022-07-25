@@ -41,7 +41,7 @@
         </dependency>
         <dependency>
             <groupId>com.lyft.data</groupId>
-            <artifactId>proxyserver</artifactId>
+            <artifactId>server</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>

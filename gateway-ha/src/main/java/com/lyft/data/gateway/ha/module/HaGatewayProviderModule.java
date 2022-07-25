@@ -7,7 +7,7 @@ import com.lyft.data.baseapp.AppModule;
 import com.lyft.data.gateway.ha.caching.CachingDatabaseManager;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
-import com.lyft.data.gateway.ha.handler.QueryIdCachingProxyHandler;
+import com.lyft.data.gateway.ha.handler.QueryIdCachingServerHandler;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.HaGatewayManager;
@@ -16,9 +16,10 @@ import com.lyft.data.gateway.ha.router.HaRoutingManager;
 import com.lyft.data.gateway.ha.router.PrestoQueueLengthRoutingTable;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
-import com.lyft.data.proxyserver.ProxyHandler;
-import com.lyft.data.proxyserver.ProxyServer;
-import com.lyft.data.proxyserver.ProxyServerConfiguration;
+import com.lyft.data.server.GatewayServer;
+import com.lyft.data.server.config.GatewayServerConfiguration;
+import com.lyft.data.server.handler.ServerHandler;
+
 import io.dropwizard.setup.Environment;
 
 public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, Environment> {
@@ -40,24 +41,25 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     cachingManager = new CachingDatabaseManager(configuration);
   }
 
-  protected ProxyHandler getProxyHandler() {
+  protected ServerHandler getProxyHandler() {
     Meter requestMeter =
         getEnvironment()
             .metrics()
             .meter(getConfiguration().getRequestRouter().getName() + ".requests");
-    return new QueryIdCachingProxyHandler(
-        getQueryHistoryManager(), getRoutingManager(), getApplicationPort(), requestMeter);
+    return new QueryIdCachingServerHandler(
+        getQueryHistoryManager(), getRoutingManager(), getCachingDatabaseManager(),
+        getApplicationPort(), requestMeter);
   }
 
   @Provides
   @Singleton
-  public ProxyServer provideGateway() {
-    ProxyServer gateway = null;
+  public GatewayServer provideGateway() {
+    GatewayServer gateway = null;
     if (getConfiguration().getRequestRouter() != null) {
       // Setting up request router
       RequestRouterConfiguration routerConfiguration = getConfiguration().getRequestRouter();
 
-      ProxyServerConfiguration routerProxyConfig = new ProxyServerConfiguration();
+      GatewayServerConfiguration routerProxyConfig = new GatewayServerConfiguration();
       routerProxyConfig.setLocalPort(routerConfiguration.getPort());
       routerProxyConfig.setName(routerConfiguration.getName());
       routerProxyConfig.setProxyTo("");
@@ -65,8 +67,8 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
       routerProxyConfig.setKeystorePath(routerConfiguration.getKeystorePath());
       routerProxyConfig.setKeystorePass(routerConfiguration.getKeystorePass());
 
-      ProxyHandler proxyHandler = getProxyHandler();
-      gateway = new ProxyServer(routerProxyConfig, proxyHandler);
+      ServerHandler proxyHandler = getProxyHandler();
+      gateway = new GatewayServer(routerProxyConfig, proxyHandler);
     }
     return gateway;
   }

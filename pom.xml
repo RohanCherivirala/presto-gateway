@@ -75,7 +75,7 @@
 
     <modules>
         <module>baseapp</module>
-        <module>proxyserver</module>
+        <module>server</module>
         <module>gateway-ha</module>
     </modules>
 

@@ -1,4 +1,6 @@
-package com.lyft.data.proxyserver;
+package com.lyft.data.server.servlets;
+
+import com.lyft.data.server.handler.ServerHandler;
 
 import java.util.concurrent.TimeUnit;
 
@@ -16,9 +18,9 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 @Slf4j
 public class ProxyServletImpl extends ProxyServlet.Transparent {
-  private ProxyHandler proxyHandler;
+  private ServerHandler proxyHandler;
 
-  public void setProxyHandler(ProxyHandler proxyHandler) {
+  public void setProxyHandler(ServerHandler proxyHandler) {
     this.proxyHandler = proxyHandler;
     // This needs to be high as external clients may take longer to connect.
     this.setTimeout(TimeUnit.MINUTES.toMillis(1));
