@@ -12,6 +12,7 @@ import com.lyft.data.gateway.ha.config.NotifierConfiguration;
 import com.lyft.data.gateway.ha.notifier.EmailNotifier;
 import com.lyft.data.gateway.ha.router.PrestoQueueLengthRoutingTable;
 import com.lyft.data.gateway.ha.router.RoutingManager;
+
 import io.dropwizard.setup.Environment;
 import java.util.ArrayList;
 import java.util.List;

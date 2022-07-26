@@ -46,6 +46,8 @@ public class ServerHandler {
   public static final String ALTERNATE_ROUTING_GROUP_HEADER = "X-Presto-Routing-Group";
   public static final String CLIENT_TAGS_HEADER = "X-Trino-Client-Tags";
   public static final String ALTERNATE_CLIENT_TAGS_HEADER = "X-Presto-Client-Tags";
+  public static final String CLIENT_SERVER_REDIRECT = "Client-Server-Redirected";
+
   public static final String ADHOC_ROUTING_GROUP = "adhoc";
   public static final int QUERY_TEXT_LENGTH_FOR_HISTORY = 200;
 
@@ -103,11 +105,7 @@ public class ServerHandler {
       HttpServletRequest request, 
       HttpServletResponse proxyResponse, 
       Response serverResponse) {
-    log.debug("\n\n\n\nREACHED COMPLETION \n\n\n\n");
-
-    debugLogHeaders(request);
-    debugLogHeaders(proxyResponse);
-    debugLogHeaders(serverResponse);
+    log.debug("Request reached completion");
   }
 
   /**
@@ -316,7 +314,7 @@ public class ServerHandler {
    * @param requestUri Request Uri from client
    * @return Request Uri without the client info
    */
-  public String removeClientFromUri(String requestUri) {
+  public static String removeClientFromUri(String requestUri) {
     return requestUri.substring(CLIENT_SERVER_PREFIX.length());
   }
 
@@ -325,7 +323,7 @@ public class ServerHandler {
    * @param path Path of request
    * @return If the path is a statement path
    */
-  public boolean isStatementPath(String path) {
+  public static boolean isStatementPath(String path) {
     return path.startsWith(V1_STATEMENT_PATH);
   }
 

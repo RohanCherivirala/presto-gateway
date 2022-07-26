@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
+
 import io.dropwizard.views.View;
 
 import java.nio.charset.Charset;

@@ -15,8 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientServletImpl extends HttpServlet {
-  public static final String CLIENT_SERVER_REDIRECT = "Client-Server-Redirected";
-
   private ServerHandler serverHandler;
 
   public void setServerHandler(ServerHandler serverHandler) {
@@ -27,8 +25,8 @@ public class ClientServletImpl extends HttpServlet {
   protected void service(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {   
     if (req.getMethod().equals(HttpMethod.GET) 
-        && serverHandler.isStatementPath(
-            serverHandler.removeClientFromUri(req.getRequestURI()))) {
+        && ServerHandler.isStatementPath(
+            ServerHandler.removeClientFromUri(req.getRequestURI()))) {
       super.service(req, resp);
     } else {
       redirectRequest(req, resp);
@@ -44,7 +42,7 @@ public class ClientServletImpl extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    log.warn("\n\n\n\nREACHED CLIENT SERVER GET\n\n\n");
+    log.debug("Reached client server GET");
 
     if (serverHandler.fillResponseForQueryFromCache(req, resp)) {
       resp.setStatus(HttpServletResponse.SC_OK);
@@ -64,7 +62,7 @@ public class ClientServletImpl extends HttpServlet {
       throws ServletException, IOException {
     String newUri = serverHandler.removeClientFromUri(req.getRequestURI());
 
-    ((MultiReadHttpServletRequest)req).addHeader(CLIENT_SERVER_REDIRECT, "true");
+    ((MultiReadHttpServletRequest)req).addHeader(ServerHandler.CLIENT_SERVER_REDIRECT, "true");
     req.getRequestDispatcher(newUri).forward(req, resp);
   }
 }

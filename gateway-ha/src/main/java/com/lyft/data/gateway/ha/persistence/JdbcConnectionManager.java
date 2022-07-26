@@ -26,12 +26,12 @@ public class JdbcConnectionManager {
         configuration.getJdbcUrl(),
         configuration.getUser(),
         configuration.getPassword());
-    log.debug("Connection opened");
+    log.debug("JDBC connection opened");
   }
 
   public void close() {
     Base.close();
-    log.debug("Connection closed");
+    log.debug("JDBC connection closed");
   }
 
   private void startCleanUps() {

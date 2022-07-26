@@ -1,5 +1,7 @@
-package com.lyft.data.gateway.ha.caching;
+package com.lyft.data.gateway.ha.router;
 
+import com.lyft.data.gateway.ha.caching.CachingDatabaseConnection;
+import com.lyft.data.gateway.ha.caching.RedisConnection;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 
 public class CachingDatabaseManager {
@@ -19,15 +21,25 @@ public class CachingDatabaseManager {
   }
 
   public String get(String key) {
-    return client.get(key);
+    try {
+      client.open();
+      return client.get(key);
+    } finally {
+      client.close();
+    }
   }
 
-  public void set(String key, String value) {
-    client.set(key, value);
+  public String set(String key, String value) {
+    try {
+      client.open();
+      return client.set(key, value);
+    } finally {
+      client.close();
+    }
   }
 
-  public void testConnection() {
-    client.testConnection();
+  public boolean validateConnection() {
+    return client.validateConnection();
   }
 
   public void shutdown() {

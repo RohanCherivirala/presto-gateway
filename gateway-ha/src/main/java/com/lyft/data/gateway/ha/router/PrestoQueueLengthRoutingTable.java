@@ -1,6 +1,7 @@
 package com.lyft.data.gateway.ha.router;
 
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;

@@ -1,6 +1,6 @@
 package com.lyft.data.server.filter;
 
-import com.lyft.data.server.servlets.ClientServletImpl;
+import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 
 import java.io.IOException;
@@ -35,8 +35,9 @@ public class RequestFilter implements Filter {
     HttpServletRequest req = (HttpServletRequest) request;
     String reqUri = req.getRequestURI();
 
-    if (req.getHeader(ClientServletImpl.CLIENT_SERVER_REDIRECT) == null 
-          && !reqUri.startsWith("/clientServer")) {
+    if (req.getHeader(ServerHandler.CLIENT_SERVER_REDIRECT) == null 
+          && !reqUri.startsWith("/clientServer")
+          && ServerHandler.isStatementPath(req.getRequestURI())) {
       // Forward to client server initially
       reqUri = "/clientServer" + reqUri;
       req.getRequestDispatcher(reqUri).forward(request, response);
