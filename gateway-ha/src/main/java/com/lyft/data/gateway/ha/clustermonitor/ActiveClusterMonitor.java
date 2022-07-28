@@ -139,7 +139,8 @@ public class ActiveClusterMonitor implements Managed {
         clusterStats.setRoutingGroup(backend.getRoutingGroup());
         log.info("Host: {}, Cluster_stat: {}", System.getenv("HOSTNAME"), clusterStats);
       } else {
-        log.warn("Received non 200 response, response code: {}", responseCode);
+        log.error("Received non 200 response, response code: " 
+            + "{} when fetching cluster stats from [{}]", responseCode, target);
       }
     } catch (Exception e) {
       clusterStats.setHealthy(false);
