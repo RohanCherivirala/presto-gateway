@@ -102,7 +102,7 @@ public class HaGatewayTestUtils {
   public static void setUpBackend(
       String name, String proxyTo, boolean active, String routingGroup, int routerPort)
       throws Exception {
-    routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration(routingGroup));
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration(routingGroup));
     RequestBody requestBody =
         RequestBody.create(
             MediaType.parse("application/json; charset=utf-8"),

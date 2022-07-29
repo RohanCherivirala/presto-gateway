@@ -30,11 +30,14 @@ public class TestHaGatewayManager {
     JdbcConnectionManager connectionManager = new JdbcConnectionManager(db);
     haGatewayManager = new HaGatewayManager(connectionManager);
     routingGroupsManager = new RoutingGroupsManager(connectionManager);
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("adhoc"));
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("etl"));
   }
 
+  @Test
   public void testAddBackend() {
-    routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration("adhoc"));
-    routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration("etl"));
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("adhoc"));
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("etl"));
     ProxyBackendConfiguration backend = new ProxyBackendConfiguration();
     backend.setActive(true);
     backend.setRoutingGroup("adhoc");
