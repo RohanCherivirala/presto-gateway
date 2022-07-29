@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS prestogateway;
-USE prestogateway;
-
 CREATE TABLE IF NOT EXISTS routing_groups (
 name VARCHAR(256) PRIMARY KEY,
 active BOOLEAN
