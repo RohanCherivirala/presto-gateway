@@ -7,6 +7,7 @@ import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import java.io.File;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ public class TestPrestoQueueLengthRoutingTable {
                                                      routingGroupsManager);
 
     for (String grp : mockRoutingGroups) {
+      routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration(grp));
       addMockBackends(grp, NUM_BACKENDS, 0);
     }
   }
@@ -113,6 +115,7 @@ public class TestPrestoQueueLengthRoutingTable {
 
   private void registerBackEnds(String groupName, int numBackends,
                                 int queueLengthDistributiveFactor) {
+    routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration(groupName));
     int mockQueueLength = 0;
     String backend;
 
