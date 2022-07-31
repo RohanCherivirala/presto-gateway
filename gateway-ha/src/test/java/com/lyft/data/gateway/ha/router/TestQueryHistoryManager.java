@@ -34,6 +34,7 @@ public class TestQueryHistoryManager {
     queryHistoryManager = new HaQueryHistoryManager(gatewayConf, connectionManager) {};
   }
 
+  @Test
   public void testSubmitAndFetchQueryHistory() {
     List<QueryHistoryManager.QueryDetail> queryDetails = queryHistoryManager.fetchQueryHistory();
     Assert.assertEquals(queryDetails.size(), 0);
