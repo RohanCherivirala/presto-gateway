@@ -1,16 +1,17 @@
 package com.lyft.data.gateway.ha.router;
 
-import java.io.File;
-import java.util.List;
-import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
 import com.lyft.data.gateway.ha.HaGatewayTestUtils;
 import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
+
+import java.io.File;
+import java.util.List;
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+
+import org.testng.annotations.Test;
 
 @Test
 public class TestRoutingGroupsManager {
@@ -20,7 +21,7 @@ public class TestRoutingGroupsManager {
   @BeforeClass(alwaysRun = true)
   public void setup() {
     File baseDir = new File(System.getProperty("java.io.tmpdir"));
-    File tempH2DbDir = new File(baseDir, "h2db-" + System.currentTimeMillis());
+    File tempH2DbDir = new File(baseDir, "h2db-rg-" + System.currentTimeMillis());
     tempH2DbDir.deleteOnExit();
 
     HaGatewayTestUtils.seedRequiredData(
@@ -38,13 +39,14 @@ public class TestRoutingGroupsManager {
     List<ProxyBackendConfiguration> backends = haGatewayManager.getAllBackends();
     List<RoutingGroupConfiguration> groups = routingGroupsManager.getAllRoutingGroups(backends);
 
-    Assert.assertEquals(groups.size(), 0);
     for (int i = 0; i < 10; i++) {
-      RoutingGroupConfiguration rg = new RoutingGroupConfiguration(i+ "");
+      RoutingGroupConfiguration rg = new RoutingGroupConfiguration(Integer.toString(i));
       routingGroupsManager.addRoutingGroup(rg);
     }
 
     groups = routingGroupsManager.getAllRoutingGroups(backends);
-    Assert.assertEquals(groups.size(), 10);
+    for (int i = 0; i < 10; i++) {
+      Assert.assertNotNull(routingGroupsManager.getByName(groups, Integer.toString(i)));
+    }
   }
 }
