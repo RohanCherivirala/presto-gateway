@@ -51,17 +51,16 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   private final QueryHistoryManager queryHistoryManager;
 
   private final Meter requestMeter;
-  private final int serverApplicationPort;
 
   public QueryIdCachingProxyHandler(
       QueryHistoryManager queryHistoryManager,
       RoutingManager routingManager,
       int serverApplicationPort,
       Meter requestMeter) {
+    super(serverApplicationPort);
     this.requestMeter = requestMeter;
     this.routingManager = routingManager;
     this.queryHistoryManager = queryHistoryManager;
-    this.serverApplicationPort = serverApplicationPort;
   }
 
   @Override
