@@ -12,15 +12,15 @@ Edit the [config file](../gateway/src/main/resources/config.yml.template) and up
 cd gateway-ha/target/
 java -jar gateway=ha-{{VERSION}}-jar-with-dependencies.jar server ../config.yml.template
 ```
-Now you can access load balanced presto at localhost:8080 port. We will refer to this as `prestogateway.lyft.com`
+Now you can access load balanced presto at localhost:8080 port. We will refer to this as `presto-gateway.prod.6si.com`
  
 ### Query History UI - check query plans etc.
 PrestoGateway records history of recent queries and displays links to check query details page in respective presto cluster.  
-![prestogateway.lyft.com](../docs/assets/prestogateway_query_history.png) 
+![presto-gateway.prod.6si.com](../docs/assets/prestogateway_query_history.png) 
 
 ### Gateway Admin UI - add and modify backend information
 The Gateway admin page is used to configure the gateway to multiple backends. Existing backend information can also be modified using the same.
-![prestogateway.lyft.com/admin](../docs/assets/prestogateway_ha_admin.png) 
+![presto-gateway.prod.6si.com/entity](../docs/assets/prestogateway_ha_admin.png) 
 
 How to setup a dev environment
 ----------------------------
@@ -54,7 +54,7 @@ server /path/to/gateway-ha/src/test/resources/config-template.yml
 
 ### Get all backends behind the gateway
 
-`curl -X GET prestogateway.lyft.com/gateway/backend/all | python -m json.tool`
+`curl -X GET presto-gateway.prod.6si.com/gateway/backend/all | python -m json.tool`
 ```
 [
     {
@@ -79,7 +79,7 @@ server /path/to/gateway-ha/src/test/resources/config-template.yml
 ```
 ### Get all active backend behind the Gateway
 
-`curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool`
+`curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.tool`
 ```
 [
     {
@@ -105,12 +105,12 @@ server /path/to/gateway-ha/src/test/resources/config-template.yml
 ### Add a backend to the gateway
 
 ```
-curl -v -H "Content-Type: application/json" -d '{"name": "presto3","proxyTo": "http://presto3.lyft.com","active": false,"routingGroup": "adhoc"}' http://prestogateway.lyft.com/gateway/backend/modify/add
+curl -v -H "Content-Type: application/json" -d '{"name": "presto3","proxyTo": "http://presto3.lyft.com","active": false,"routingGroup": "adhoc"}' http://presto-gateway.prod.6si.com/gateway/backend/modify/add
 ```
 
 Verify this by calling get active backends
 ```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.tool
 
 [
     {
@@ -136,12 +136,12 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
 ### Update backend information 
 
 ```
-curl -v -H "Content-Type: application/json" -d '{"name": "presto3","localPort": 8084,"proxyTo": "http://presto3.lyft.com","includeInRouter": true,"active": false,"routingGroup": "adhoc"}' http://prestogateway.lyft.com/gateway/backend/modify/add
+curl -v -H "Content-Type: application/json" -d '{"name": "presto3","localPort": 8084,"proxyTo": "http://presto3.lyft.com","includeInRouter": true,"active": false,"routingGroup": "adhoc"}' http://presto-gateway.prod.6si.com/gateway/backend/modify/add
 ```
 
 Verify if the port number is updated by calling get active backends
 ```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.tool
 
 [
     {
@@ -167,12 +167,12 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
 ### Delete a backend from the gateway
 
 ```
-curl -v -H "Content-Type: application/json" -d '{"name": "presto3"}' http://prestogateway.lyft.com/gateway/backend/modify/delete
+curl -v -H "Content-Type: application/json" -d '{"name": "presto3"}' http://presto-gateway.prod.6si.com/gateway/backend/modify/delete
 ```
 
 Verify this by calling get active backends
 ```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.tool
 
 [
     {
@@ -192,11 +192,11 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
 ```
 ### Deactivate a backend 
 
-`curl -X POST prestogateway.lyft.com/gateway/backend/deactivate/presto2`
+`curl -X POST presto-gateway.prod.6si.com/gateway/backend/deactivate/presto2`
 
 Verify this by calling get active backends
 ```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.tool
 [
     {
         "active": true,
@@ -214,11 +214,11 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
 ```
 ### Activate a backend 
 
-`curl -X POST prestogateway.lyft.com/gateway/backend/activate/presto2`
+`curl -X POST presto-gateway.prod.6si.com/gateway/backend/activate/presto2`
 
 Verify this by calling get active backends
 ```
-curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
+curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.tool
 
 [
     {
@@ -244,20 +244,20 @@ curl -X GET prestogateway.lyft.com/gateway/backend/active | python -m json.tool
 
 ### Add a routing group
 
-`curl -X POST prestogateway.lyft.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
 
 ### Update a routing group
 
-`curl -X PUT prestogateway.lyft.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
+`curl -X PUT presto-gateway.prod.6si.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
 
 ### Delete a routing group
 
-`curl -X DELETE prestogateway.lyft.com/gateway/routingGroup -d '[name of routing group]'`
+`curl -X DELETE presto-gateway.prod.6si.com/gateway/routingGroup -d '[name of routing group]'`
 
 ### Pause a routing group
 
-`curl -X POST prestogateway.lyft.com/gateway/routingGroup/pauseRoutingGroup/[name of routing group]`
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroup/pauseRoutingGroup/[name of routing group]`
 
 ### Resume a routing group
 
-`curl -X POST prestogateway.lyft.com/gateway/routingGroup/resumeRoutingGroup/[name of routing group]`
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroup/resumeRoutingGroup/[name of routing group]`
