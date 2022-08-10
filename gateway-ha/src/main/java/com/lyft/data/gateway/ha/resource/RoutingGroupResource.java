@@ -1,6 +1,7 @@
 package com.lyft.data.gateway.ha.resource;
 
 import static com.lyft.data.gateway.ha.resource.GatewayResource.throwError;
+import static com.lyft.data.gateway.ha.resource.GatewayResource.isValidName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
@@ -51,10 +52,16 @@ public class RoutingGroupResource {
    * @return Response containing status of query
    */
   @PUT
-  public Response updateRoutingGroup(String jsonPayload) {
+  @Path("/{name}")
+  public Response updateRoutingGroup(@PathParam("name") String name, String jsonPayload) {
+    if (isValidName(name) != null) {
+      return isValidName(name);
+    }
+
     try {
       RoutingGroupConfiguration group = 
           OBJECT_MAPPER.readValue(jsonPayload, RoutingGroupConfiguration.class);
+      group.setName(name);
       routingGroupsManager.updateRoutingGroup(group);
     } catch (Exception e) {
       log.error(e.getMessage(), e);
@@ -70,7 +77,12 @@ public class RoutingGroupResource {
    * @return Response containing status of query
    */
   @DELETE
-  public Response deleteRoutingGroup(String name) {
+  @Path("/{name}")
+  public Response deleteRoutingGroup(@PathParam("name") String name) {
+    if (isValidName(name) != null) {
+      return isValidName(name);
+    }
+
     try {
       routingGroupsManager.deleteRoutingGroups(name);
     } catch (Exception e) {
@@ -88,6 +100,10 @@ public class RoutingGroupResource {
   @POST
   @Path("/pauseRoutingGroup/{name}")
   public Response pauseRoutingGroup(@PathParam("name") String name) {
+    if (isValidName(name) != null) {
+      return isValidName(name);
+    }
+
     try {
       routingGroupsManager.pauseRoutingGroup(name);
     } catch (Exception e) {
@@ -105,6 +121,10 @@ public class RoutingGroupResource {
   @POST
   @Path("/resumeRoutingGroup/{name}")
   public Response resumeRoutingGroup(@PathParam("name") String name) {
+    if (isValidName(name) != null) {
+      return isValidName(name);
+    }
+    
     try {
       routingGroupsManager.resumeRoutingGroup(name);
     } catch (Exception e) {

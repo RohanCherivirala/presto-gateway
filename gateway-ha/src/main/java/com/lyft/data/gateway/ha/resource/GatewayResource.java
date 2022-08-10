@@ -1,5 +1,6 @@
 package com.lyft.data.gateway.ha.resource;
 
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
@@ -52,6 +53,10 @@ public class GatewayResource {
   @POST
   @Path("/backend/deactivate/{name}")
   public Response deactivateBackend(@PathParam("name") String name) {
+    if (isValidName(name) != null) {
+      return isValidName(name);
+    }
+
     try {
       this.gatewayBackendManager.deactivateBackend(name);
     } catch (Exception e) {
@@ -68,22 +73,47 @@ public class GatewayResource {
   @POST
   @Path("/backend/activate/{name}")
   public Response activateBackend(@PathParam("name") String name) {
+    if (isValidName(name) != null) {
+      return isValidName(name);
+    }
+
     try {
       this.gatewayBackendManager.activateBackend(name);
     } catch (Exception e) {
       log.error(e.getMessage(), e);
       return throwError(e);
     }
+
     return Response.ok().build();
   }
 
   /**
-   * Method to throw an error response.
+   * Checks if the name in the path is valid and returns a 404
+   * error if its not.
+   * @param name Name supplied through URI
+   * @return 404 response if invalid and null otherwise
+   */
+  public static Response isValidName(String name) {
+    return Strings.isNullOrEmpty(name) ? throw404Error() : null;
+  }
+
+  /**
+   * Method to throw an 415 error response.
    * @param e Error called
    * @return Response containing error
    */
   public static Response throwError(Exception e) {
     return Response.status(Response.Status.UNSUPPORTED_MEDIA_TYPE)
+        .build();
+  }
+
+  /**
+   * Method to throw 404 error on invalid path.
+   * @param e Error called
+   * @return Response containing error
+   */
+  public static Response throw404Error() {
+    return Response.status(Response.Status.NOT_FOUND)
         .build();
   }
 }

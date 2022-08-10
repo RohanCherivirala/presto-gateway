@@ -248,11 +248,11 @@ curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.
 
 ### Update a routing group
 
-`curl -X PUT presto-gateway.prod.6si.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
+`curl -X PUT presto-gateway.prod.6si.com/gateway/routingGroup/[name of routing group] -d '{"active": [true/false]}'`
 
 ### Delete a routing group
 
-`curl -X DELETE presto-gateway.prod.6si.com/gateway/routingGroup -d '[name of routing group]'`
+`curl -X DELETE presto-gateway.prod.6si.com/gateway/routingGroup/[name of routing group]`
 
 ### Pause a routing group
 
