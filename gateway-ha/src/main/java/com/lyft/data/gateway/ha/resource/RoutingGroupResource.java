@@ -1,7 +1,7 @@
 package com.lyft.data.gateway.ha.resource;
 
-import static com.lyft.data.gateway.ha.resource.GatewayResource.throwError;
 import static com.lyft.data.gateway.ha.resource.GatewayResource.isValidName;
+import static com.lyft.data.gateway.ha.resource.GatewayResource.throwError;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
