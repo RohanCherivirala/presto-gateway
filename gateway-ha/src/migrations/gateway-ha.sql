@@ -3,7 +3,7 @@ USE prestogateway;
 
 CREATE TABLE IF NOT EXISTS routing_groups (
 name VARCHAR(256) PRIMARY KEY,
-active BOOLEAN
+active BOOLEAN DEFAULT true
 );
 
 CREATE TABLE IF NOT EXISTS gateway_backend (
