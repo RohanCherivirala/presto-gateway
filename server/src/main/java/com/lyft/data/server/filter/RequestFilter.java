@@ -36,10 +36,10 @@ public class RequestFilter implements Filter {
     String reqUri = req.getRequestURI();
 
     if (req.getHeader(ServerHandler.CLIENT_SERVER_REDIRECT) == null 
-          && !reqUri.startsWith("/clientServer")
+          && !reqUri.startsWith(ServerHandler.CLIENT_SERVER_PREFIX)
           && ServerHandler.isStatementPath(req.getRequestURI())) {
       // Forward to client server initially
-      reqUri = "/clientServer" + reqUri;
+      reqUri = ServerHandler.CLIENT_SERVER_PREFIX + reqUri;
       req.getRequestDispatcher(reqUri).forward(request, response);
     } else {
       // We need to convert the ServletRequest to MultiReadRequest, so that we can intercept later
