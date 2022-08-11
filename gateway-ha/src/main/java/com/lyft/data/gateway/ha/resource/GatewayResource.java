@@ -98,12 +98,12 @@ public class GatewayResource {
   }
 
   /**
-   * Method to throw an 415 error response.
+   * Method to throw an 500 error response.
    * @param e Error called
    * @return Response containing error
    */
   public static Response throwError(Exception e) {
-    return Response.status(Response.Status.UNSUPPORTED_MEDIA_TYPE)
+    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
         .build();
   }
 
