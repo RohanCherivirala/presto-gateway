@@ -21,10 +21,21 @@ import org.eclipse.jetty.util.Callback;
 /* Order of control => rewriteTarget, preConnectionHook, postConnectionHook. */
 @Slf4j
 public class ProxyHandler {
+  protected final int serverApplicationPort;
+
+  public ProxyHandler(int serverApplicationPort) {
+    this.serverApplicationPort = serverApplicationPort;
+  }
 
   protected String rewriteTarget(HttpServletRequest request) {
     // Dont override this unless absolutely needed.
-    return null;
+    String backendAddress = "http://localhost:" + serverApplicationPort;
+
+    String targetLocation =
+        backendAddress
+            + request.getRequestURI()
+            + (request.getQueryString() != null ? "?" + request.getQueryString() : "");
+    return targetLocation;
   }
 
   /**

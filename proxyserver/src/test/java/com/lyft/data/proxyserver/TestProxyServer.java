@@ -30,7 +30,7 @@ public class TestProxyServer {
 
     int serverPort = backendPort + 1;
     ProxyServerConfiguration config = buildConfig(backend.getUrl("/").toString(), serverPort);
-    ProxyServer proxyServer = new ProxyServer(config, new ProxyHandler());
+    ProxyServer proxyServer = new ProxyServer(config, new ProxyHandler(backendPort));
 
     try {
       proxyServer.start();
@@ -55,7 +55,7 @@ public class TestProxyServer {
 
     int serverPort = backendPort + 1;
     ProxyServerConfiguration config = buildConfig(backend.getUrl("/").toString(), serverPort);
-    ProxyServer proxyServer = new ProxyServer(config, new ProxyHandler());
+    ProxyServer proxyServer = new ProxyServer(config, new ProxyHandler(backendPort));
 
     try {
       proxyServer.start();

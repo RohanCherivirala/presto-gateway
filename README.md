@@ -18,7 +18,7 @@ Now open mysql console and install the presto-gateway tables:
 mysql -uroot -proot123 -h127.0.0.1 -Dprestogateway
 
 ```
-Once logged in to mysql console, please run [gateway-ha-persistence.sql](/gateway-ha/src/main/resources/gateway-ha-persistence.sql) to populate the tables.
+Once logged in to mysql console, please run [gateway-ha-persistence.sql](/gateway-ha/src/migrations/gateway-ha.sql) to populate the tables.
 
 
 Step 2: Edit the configuration `gateway-ha-config.yml`
@@ -36,7 +36,7 @@ Edit the [config file](/gateway-ha/gateway-ha-config.yml) and update the mysql d
 cd gateway-ha/target/
 java -jar gateway-ha-{{VERSION}}-jar-with-dependencies.jar server ../gateway-ha-config.yml
 ```
-Now you can access load balanced presto at localhost:8080 port. We will refer to this as `prestogateway.lyft.com`
+Now you can access load balanced presto at localhost:8080 port. We will refer to this as `presto-gateway.prod.6si.com`
  
 ## Gateway API
 
@@ -100,11 +100,11 @@ curl -X POST http://localhost:8080/gateway/backend/deactivate/presto2
 
 ### Query History UI - check query plans etc.
 PrestoGateway records history of recent queries and displays links to check query details page in respective presto cluster.  
-![prestogateway.lyft.com](/docs/assets/prestogateway_query_history.png) 
+![presto-gateway.prod.6si.com](/docs/assets/prestogateway_query_history.png) 
 
 ### Gateway Admin UI - add and modify backend information
 The Gateway admin page is used to configure the gateway to multiple backends. Existing backend information can also be modified using the same.
-![prestogateway.lyft.com/entity](/docs/assets/prestogateway_ha_admin.png) 
+![presto-gateway.prod.6si.com/entity](/docs/assets/prestogateway_ha_admin.png) 
 
 ## Contributing
 

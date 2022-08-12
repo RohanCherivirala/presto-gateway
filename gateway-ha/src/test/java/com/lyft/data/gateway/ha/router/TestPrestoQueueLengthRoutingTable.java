@@ -7,6 +7,7 @@ import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import java.io.File;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ public class TestPrestoQueueLengthRoutingTable {
   PrestoQueueLengthRoutingTable routingTable;
   GatewayBackendManager backendManager;
   QueryHistoryManager historyManager;
+  RoutingGroupsManager routingGroupsManager;
   String[] mockRoutingGroups = {"adhoc", "scheduled"};
   String mockRoutingGroup = "adhoc";
   Map<String, Map<String, Integer>> clusterQueueMap;
@@ -45,9 +47,12 @@ public class TestPrestoQueueLengthRoutingTable {
     backendManager = new HaGatewayManager(connectionManager);
     historyManager = new HaQueryHistoryManager(gatewayConf, connectionManager) {
     };
-    routingTable = new PrestoQueueLengthRoutingTable(backendManager, historyManager);
+    routingGroupsManager = new RoutingGroupsManager(connectionManager);
+    routingTable = new PrestoQueueLengthRoutingTable(backendManager, historyManager, 
+                                                     routingGroupsManager);
 
     for (String grp : mockRoutingGroups) {
+      routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration(grp));
       addMockBackends(grp, NUM_BACKENDS, 0);
     }
   }
@@ -110,6 +115,7 @@ public class TestPrestoQueueLengthRoutingTable {
 
   private void registerBackEnds(String groupName, int numBackends,
                                 int queueLengthDistributiveFactor) {
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration(groupName));
     int mockQueueLength = 0;
     String backend;
 

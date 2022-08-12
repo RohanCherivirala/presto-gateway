@@ -3,6 +3,7 @@ package com.lyft.data.gateway.ha.router;
 import com.lyft.data.gateway.ha.HaGatewayTestUtils;
 import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import java.io.File;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.testng.annotations.Test;
 @Test
 public class TestHaGatewayManager {
   private HaGatewayManager haGatewayManager;
+  private RoutingGroupsManager routingGroupsManager;
 
   @BeforeClass(alwaysRun = true)
   public void setUp() {
@@ -27,9 +29,15 @@ public class TestHaGatewayManager {
     DataStoreConfiguration db = new DataStoreConfiguration(jdbcUrl, "sa", "sa", "org.h2.Driver");
     JdbcConnectionManager connectionManager = new JdbcConnectionManager(db);
     haGatewayManager = new HaGatewayManager(connectionManager);
+    routingGroupsManager = new RoutingGroupsManager(connectionManager);
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("adhoc"));
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("etl"));
   }
 
+  @Test
   public void testAddBackend() {
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("adhoc"));
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration("etl"));
     ProxyBackendConfiguration backend = new ProxyBackendConfiguration();
     backend.setActive(true);
     backend.setRoutingGroup("adhoc");

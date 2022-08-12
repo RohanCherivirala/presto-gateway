@@ -17,6 +17,8 @@ public interface GatewayBackendManager {
 
   ProxyBackendConfiguration updateBackend(ProxyBackendConfiguration backend);
 
+  void deleteBackend(String backendName);
+
   void deactivateBackend(String backendName);
 
   void activateBackend(String backendName);

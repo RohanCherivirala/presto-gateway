@@ -1,3 +1,4 @@
+<#-- @ftlvariable name="" type="com.lyft.data.gateway.resource.GatewayViewResource$GatewayView" -->
 <#setting datetime_format = "MM/dd/yyyy hh:mm:ss a '('zzz')'">
 <html>
 <head>
@@ -22,15 +23,22 @@
     <script src="assets/js/jquery.dataTables.min.js"></script>
     <script src="assets/js/hbar-chart.js"></script>
 
+    <link rel="stylesheet" type="text/css" href="assets/css/tableProperties.css"/>
+
     <script type="application/javascript">
         $(document).ready(function () {
-            $('#queryHistory').DataTable(
-                {
-                    "ordering": false,
-                    "dom": '<"pull-left"f><"pull-right"l>tip',
-                    "width": '100%'
-                }
-            );
+            $('#queryHistory').dataTable( {
+                "ordering": false,
+                "dom": '<"pull-left"f><"pull-right"l>tip',
+                "width": '100%',
+                "columnDefs": [ {
+                    "targets": '_all',
+                    "createdCell": function (td, cellData, rowData, row, col) {
+                        $(td).css('padding', '8px 18px')
+                    }
+                }]
+            } );
+
             $("ul.chart").hBarChart();
             document.getElementById("query_history_tab").style.backgroundColor = "grey";
         });

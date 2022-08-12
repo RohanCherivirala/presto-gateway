@@ -42,6 +42,4 @@ public class HealthChecker implements PrestoClusterStatsObserver {
     notifier.sendNotification(String.format("%s - Number of workers",
         clusterStats.getClusterId()), clusterStats.toString());
   }
-
-
 }

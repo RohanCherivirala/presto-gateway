@@ -1,6 +1,6 @@
 <#-- @ftlvariable name="" type="com.lyft.data.gateway.resource.GatewayViewResource$GatewayView" -->
 <#setting datetime_format = "MM/dd/yyyy hh:mm:ss a '('zzz')'">
-    <html>
+<html>
 <head>
     <meta charset="UTF-8"/>
     <style>
@@ -16,7 +16,6 @@
             width: 500px
         }
     </style>
-
     <link rel="stylesheet" type="text/css" href="assets/css/common.css"/>
     <link rel="stylesheet" type="text/css" href="assets/css/jquery.dataTables.min.css"/>
 
@@ -29,7 +28,7 @@
 
     <script type="application/javascript">
         $(document).ready(function () {
-            $('#clusters').dataTable( {
+            $('#routingGroups').dataTable( {
                 "ordering": false,
                 "dom": '<"pull-left"f><"pull-right"l>tip',
                 "width": '100%',
@@ -44,10 +43,11 @@
                     }
                 }]
             } );
-
+            
             $("ul.chart").hBarChart();
-            document.getElementById("active_backends_tab").style.backgroundColor = "grey";
+            document.getElementById("routing_groups_tab").style.backgroundColor = "grey";
         });
+
     </script>
 </head>
 <body>
@@ -58,31 +58,31 @@
 </div>
 
 <div>
-    <h3>All backends:</h3>
-    <table id="clusters" class="display">
+    <h3>Routing Groups:<h3>
+    <table id="routingGroups" class="display">
         <thead>
             <tr>
-                <th>ClusterName</th>
-                <th>URL</th>
-                <th>RoutingGroup</th>
+                <th>Group Name</th>
+                <th>Active Clusters</th>
+                <th>Number Of Clusters</th>
                 <th>Change Status</th>
                 <th>Status</th>
             </tr>
         </thead>
 
         <tbody>
-            <#list backendConfigurations as bc>
+            <#list routingGroupConfigurations as routingGroup>
                 <tr>
-                    <td>  ${bc.name}</td>
-                    <td><a href="${bc.proxyTo}/ui/" target="_blank">${bc.proxyTo}</a></td>
-                    <td> ${bc.routingGroup}</td>
+                    <td> ${routingGroup.name}</td>
+                    <td> ${routingGroup.activeClusters}</td>
+                    <td> ${routingGroup.numberOfClusters}</td>
 
-                    <#if bc.active == true>
-                        <td><button onclick = 'disableCluster("${bc.name}")'>Disable Cluster</button></td>
+                    <#if routingGroup.active == true>
+                        <td><button onclick = 'pauseRoutingGroup("${routingGroup.name}")'>Pause Routing Group</button></td>
                         <td class = "activeCell">active</td>
                     <#else>
-                        <td><button onclick = 'activateCluster("${bc.name}")'>Activate Cluster</button></td>
-                        <td class = "disabledCell">disabled</td>
+                        <td><button onclick = 'resumeRoutingGroup("${routingGroup.name}")'>Resume Routing Group</button></td>
+                        <td class = "disabledCell">paused</td>
                     </#if>
                 </tr>
             </#list>
