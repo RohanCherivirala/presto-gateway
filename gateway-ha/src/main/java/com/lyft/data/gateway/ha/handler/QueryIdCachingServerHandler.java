@@ -37,7 +37,6 @@ public class QueryIdCachingServerHandler extends ServerHandler {
   private final CachingDatabaseManager cachingDatabaseManager;
 
   private final Meter requestMeter;
-  private final int serverApplicationPort;
 
   public QueryIdCachingServerHandler(
       QueryHistoryManager queryHistoryManager,
@@ -45,10 +44,10 @@ public class QueryIdCachingServerHandler extends ServerHandler {
       CachingDatabaseManager cachingDatabaseManager,
       int serverApplicationPort,
       Meter requestMeter) {
+    super(serverApplicationPort);
     this.queryHistoryManager = queryHistoryManager;
     this.routingManager = routingManager;
     this.cachingDatabaseManager = cachingDatabaseManager;
-    this.serverApplicationPort = serverApplicationPort;
     this.requestMeter = requestMeter;
   }
 
@@ -142,28 +141,9 @@ public class QueryIdCachingServerHandler extends ServerHandler {
       } else {
         output = new String(buffer);
       }
-
-      log.debug("Response output [{}]", output);
-
-      JsonNode root = OBJECT_MAPPER.readTree(output);
-
-      if (root.at("/error").isMissingNode()) {
-        JsonNode nextUriNode = root.at("/nextUrqwfqf");
-        if (!nextUriNode.isMissingNode()) {
-          String nextUriString = nextUriNode.asText();
-          log.debug("\nNEXT URI: {}\n", nextUriString);
-          // Edit nexturi for testing
-          nextUriString = nextUriString.substring(0, nextUriString.lastIndexOf("/") + 1);
-          ((ObjectNode) root).put("nextUri", nextUriString + "1");
-          log.debug("\nNEW OUTPUT INFO: {}\n", OBJECT_MAPPER.writeValueAsString(root));
-          log.debug("Old buf len: {}; Old len: {}", buffer.length, length);
-
-          if (isGZipEncoding(response)) {
-            buffer = compressToGz(OBJECT_MAPPER.writeValueAsString(root));
-          } else {
-            buffer = (OBJECT_MAPPER.writeValueAsString(root) + "\n")
-                                    .getBytes(Charset.defaultCharset());
-          }
+    } catch (Exception e) {
+      log.error("Error extracting query payload from request", e);
+    }
           
           length = buffer.length;
           response.setContentLengthLong(length);

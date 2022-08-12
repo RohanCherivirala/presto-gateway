@@ -57,13 +57,21 @@ public class ServerHandler {
 
   private static final Pattern EXTRACT_BETWEEN_SINGLE_QUOTES = Pattern.compile("'([^\\s']+)'");
 
-  /**
-   * Rewrites target URL.
-   * @param request {@link HttpServletRequest} sent by client
-   * @return String containing new target.
-   */
+  protected final int serverApplicationPort;
+
+  public ServerHandler(int serverApplicationPort) {
+    this.serverApplicationPort = serverApplicationPort;
+  }
+
   public String rewriteTarget(HttpServletRequest request) {
-    return null;
+    // Dont override this unless absolutely needed.
+    String backendAddress = "http://localhost:" + serverApplicationPort;
+
+    String targetLocation =
+        backendAddress
+            + request.getRequestURI()
+            + (request.getQueryString() != null ? "?" + request.getQueryString() : "");
+    return targetLocation;
   }
 
   /**

@@ -15,6 +15,7 @@ import com.lyft.data.gateway.ha.router.HaQueryHistoryManager;
 import com.lyft.data.gateway.ha.router.HaRoutingManager;
 import com.lyft.data.gateway.ha.router.PrestoQueueLengthRoutingTable;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.server.GatewayServer;
 import com.lyft.data.server.config.GatewayServerConfiguration;
@@ -23,11 +24,11 @@ import com.lyft.data.server.handler.ServerHandler;
 import io.dropwizard.setup.Environment;
 
 public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, Environment> {
-
   private final GatewayBackendManager gatewayBackendManager;
   private final QueryHistoryManager queryHistoryManager;
   private final RoutingManager routingManager;
   private final JdbcConnectionManager connectionManager;
+  private final RoutingGroupsManager routingGroupsManager;
   private final CachingDatabaseManager cachingManager;
 
   public HaGatewayProviderModule(HaGatewayConfiguration configuration, Environment environment) {
@@ -35,9 +36,10 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     connectionManager = new JdbcConnectionManager(configuration.getDataStore());
     gatewayBackendManager = new HaGatewayManager(connectionManager);
     queryHistoryManager = new HaQueryHistoryManager(configuration, connectionManager);
-    routingManager =
-        new PrestoQueueLengthRoutingTable(gatewayBackendManager,
-                (HaQueryHistoryManager) queryHistoryManager);
+    routingGroupsManager = new RoutingGroupsManager(connectionManager);
+    routingManager = new PrestoQueueLengthRoutingTable(gatewayBackendManager,
+                               (HaQueryHistoryManager) queryHistoryManager,
+                               routingGroupsManager);
     cachingManager = new CachingDatabaseManager(configuration);
   }
 
@@ -101,5 +103,10 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   @Singleton
   public CachingDatabaseManager getCachingDatabaseManager() {
     return this.cachingManager;
+  }
+  @Provides
+  @Singleton
+  public RoutingGroupsManager getRoutingGroupsManager() {
+    return this.routingGroupsManager;
   }
 }

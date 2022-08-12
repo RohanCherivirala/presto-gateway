@@ -6,6 +6,7 @@ import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
 import com.lyft.data.gateway.ha.persistence.dao.GatewayBackend;
 
 import java.util.List;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,6 +67,44 @@ public class HaGatewayManager implements GatewayBackendManager {
   }
 
   @Override
+  public ProxyBackendConfiguration addBackend(ProxyBackendConfiguration backend) {
+    try {
+      connectionManager.open();
+      GatewayBackend.create(new GatewayBackend(), backend);
+    } finally {
+      connectionManager.close();
+    }
+    return backend;
+  }
+
+  @Override
+  public ProxyBackendConfiguration updateBackend(ProxyBackendConfiguration backend) {
+    try {
+      connectionManager.open();
+      GatewayBackend model = GatewayBackend.findFirst("name = ?", backend.getName());
+      if (model == null) {
+        GatewayBackend.create(model, backend);
+      } else {
+        GatewayBackend.update(model, backend);
+      }
+    } finally {
+      connectionManager.close();
+    }
+    
+    return backend;
+  }
+
+  @Override
+  public void deleteBackend(String name) {
+    try {
+      connectionManager.open();
+      GatewayBackend.delete("name = ?", name);
+    } finally {
+      connectionManager.close();
+    }
+  }
+
+  @Override
   public void deactivateBackend(String backendName) {
     try {
       connectionManager.open();
@@ -80,40 +119,6 @@ public class HaGatewayManager implements GatewayBackendManager {
     try {
       connectionManager.open();
       GatewayBackend.findFirst("name = ?", backendName).set("active", true).saveIt();
-    } finally {
-      connectionManager.close();
-    }
-  }
-
-  public ProxyBackendConfiguration addBackend(ProxyBackendConfiguration backend) {
-    try {
-      connectionManager.open();
-      GatewayBackend.create(new GatewayBackend(), backend);
-    } finally {
-      connectionManager.close();
-    }
-    return backend;
-  }
-
-  public ProxyBackendConfiguration updateBackend(ProxyBackendConfiguration backend) {
-    try {
-      connectionManager.open();
-      GatewayBackend model = GatewayBackend.findFirst("name = ?", backend.getName());
-      if (model == null) {
-        GatewayBackend.create(model, backend);
-      } else {
-        GatewayBackend.update(model, backend);
-      }
-    } finally {
-      connectionManager.close();
-    }
-    return backend;
-  }
-
-  public void deleteBackend(String name) {
-    try {
-      connectionManager.open();
-      GatewayBackend.delete("name = ?", name);
     } finally {
       connectionManager.close();
     }

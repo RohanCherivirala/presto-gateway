@@ -45,42 +45,44 @@ public class EmailNotifier implements Notifier {
   @Override
   public void sendNotification(
       String from, List<String> recipients, String subject, String content) {
-    if (recipients.size() > 0) {
-      Session session = Session.getDefaultInstance(props);
-      MimeMessage message = new MimeMessage(session);
-      try {
-        message.setFrom(new InternetAddress(from));
+    if (notifierConfiguration != null) {
+      if (recipients.size() > 0) {
+        Session session = Session.getDefaultInstance(props);
+        MimeMessage message = new MimeMessage(session);
+        try {
+          message.setFrom(new InternetAddress(from));
 
-        // To get the array of addresses
-        recipients.forEach(
-            r -> {
-              try {
-                message.addRecipient(Message.RecipientType.TO, new InternetAddress(r));
-              } catch (Exception e) {
-                log.error("Recipient email [" + e + "] could not be added", e);
-              }
-            });
-        message.setSubject(subject);
-        message.setText(content);
-        try (Transport transport = session.getTransport("smtp")) {
-          if (notifierConfiguration.isSmtpAuthEnabled()) {
-            transport.connect(
-                notifierConfiguration.getSmtpHost(),
-                notifierConfiguration.getSmtpUser(),
-                notifierConfiguration.getSmtpPassword());
-          } else {
-            transport.connect();
+          // To get the array of addresses
+          recipients.forEach(
+              r -> {
+                try {
+                  message.addRecipient(Message.RecipientType.TO, new InternetAddress(r));
+                } catch (Exception e) {
+                  log.error("Recipient email [" + e + "] could not be added", e);
+                }
+              });
+          message.setSubject(subject);
+          message.setText(content);
+          try (Transport transport = session.getTransport("smtp")) {
+            if (notifierConfiguration.isSmtpAuthEnabled()) {
+              transport.connect(
+                  notifierConfiguration.getSmtpHost(),
+                  notifierConfiguration.getSmtpUser(),
+                  notifierConfiguration.getSmtpPassword());
+            } else {
+              transport.connect();
+            }
+            transport.sendMessage(message, message.getAllRecipients());
+          } catch (Exception e) {
+            log.error("Error creating email transport client", e);
           }
-          transport.sendMessage(message, message.getAllRecipients());
+          log.debug("Sent message [{}] successfully.", content);
         } catch (Exception e) {
-          log.error("Error creating email transport client", e);
+          log.error("Error sending alert", e);
         }
-        log.debug("Sent message [{}] successfully.", content);
-      } catch (Exception e) {
-        log.error("Error sending alert", e);
+      } else {
+        log.warn("No recipients configured to send app notification [{}]", content);
       }
-    } else {
-      log.warn("No recipients configured to send app notification [{}]", content);
     }
   }
 }
