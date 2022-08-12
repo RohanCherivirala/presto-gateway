@@ -1,0 +1,16 @@
+/* Style for tables */
+table th {
+    text-align: left;
+}
+
+table td {
+    padding: 8px 18px;
+}
+
+table tr.activeRow, table td.activeCell {
+    background-color: #90EE90;
+}
+
+table tr.disabledRow, table td.disabledCell {
+    background-color: grey;
+}

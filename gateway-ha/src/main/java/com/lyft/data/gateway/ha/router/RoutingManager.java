@@ -3,7 +3,9 @@ package com.lyft.data.gateway.ha.router;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.proxyserver.ProxyServerConfiguration;
 
 import java.net.HttpURLConnection;
@@ -30,9 +32,12 @@ public abstract class RoutingManager {
   private final LoadingCache<String, String> queryIdBackendCache;
   private ExecutorService executorService = Executors.newFixedThreadPool(5);
   private GatewayBackendManager gatewayBackendManager;
+  protected RoutingGroupsManager routingGroupsManager;
 
-  public RoutingManager(GatewayBackendManager gatewayBackendManager) {
+  public RoutingManager(GatewayBackendManager gatewayBackendManager,
+      RoutingGroupsManager routingGroupsManager) {
     this.gatewayBackendManager = gatewayBackendManager;
+    this.routingGroupsManager = routingGroupsManager;
     queryIdBackendCache =
         CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -55,7 +60,7 @@ public abstract class RoutingManager {
   }
 
   /**
-   * Performs routing to an adhoc backend.
+   * Performs routing to an adhoc backend and checks if it is not paused.
    *
    * <p>d.
    *
@@ -63,25 +68,42 @@ public abstract class RoutingManager {
    */
   public String provideAdhocBackend() {
     List<ProxyBackendConfiguration> backends = this.gatewayBackendManager.getActiveAdhocBackends();
+
     if (backends.size() == 0) {
       throw new IllegalStateException("Number of active backends found zero");
     }
+
+    List<RoutingGroupConfiguration> routingGroups =
+        routingGroupsManager.getAllRoutingGroups(backends);
+
+    if (!routingGroupsManager.getByName(routingGroups, "adhoc").isActive()) {
+      throw new IllegalStateException(
+          "All available backends are currently undergoing maintainence");
+    }
+
     int backendId = Math.abs(RANDOM.nextInt()) % backends.size();
     return backends.get(backendId).getProxyTo();
   }
 
   /**
    * Performs routing to a given cluster group. This falls back to an adhoc backend, if no scheduled
-   * backend is found.
+   * backend is found or if the routing group is paused.
    *
    * @return
    */
   public String provideBackendForRoutingGroup(String routingGroup) {
     List<ProxyBackendConfiguration> backends =
         gatewayBackendManager.getActiveBackends(routingGroup);
-    if (backends.isEmpty()) {
+
+    List<RoutingGroupConfiguration> routingGroups =
+        routingGroupsManager.getAllRoutingGroups(backends);
+
+    if (backends.isEmpty()
+        || !routingGroupsManager.getByName(routingGroups, routingGroup).isActive()) {
+      log.debug("Routing group {} is currently paused or has no active backends", routingGroup);
       return provideAdhocBackend();
     }
+
     int backendId = Math.abs(RANDOM.nextInt()) % backends.size();
     return backends.get(backendId).getProxyTo();
   }

@@ -14,6 +14,7 @@ import com.lyft.data.gateway.ha.router.HaQueryHistoryManager;
 import com.lyft.data.gateway.ha.router.HaRoutingManager;
 import com.lyft.data.gateway.ha.router.PrestoQueueLengthRoutingTable;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.proxyserver.ProxyHandler;
 import com.lyft.data.proxyserver.ProxyServer;
@@ -21,20 +22,21 @@ import com.lyft.data.proxyserver.ProxyServerConfiguration;
 import io.dropwizard.setup.Environment;
 
 public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, Environment> {
-
   private final GatewayBackendManager gatewayBackendManager;
   private final QueryHistoryManager queryHistoryManager;
   private final RoutingManager routingManager;
   private final JdbcConnectionManager connectionManager;
+  private final RoutingGroupsManager routingGroupsManager;
 
   public HaGatewayProviderModule(HaGatewayConfiguration configuration, Environment environment) {
     super(configuration, environment);
     connectionManager = new JdbcConnectionManager(configuration.getDataStore());
     gatewayBackendManager = new HaGatewayManager(connectionManager);
     queryHistoryManager = new HaQueryHistoryManager(configuration, connectionManager);
-    routingManager =
-        new PrestoQueueLengthRoutingTable(gatewayBackendManager,
-                (HaQueryHistoryManager) queryHistoryManager);
+    routingGroupsManager = new RoutingGroupsManager(connectionManager);
+    routingManager = new PrestoQueueLengthRoutingTable(gatewayBackendManager,
+                               (HaQueryHistoryManager) queryHistoryManager,
+                               routingGroupsManager);
   }
 
   protected ProxyHandler getProxyHandler() {
@@ -92,4 +94,9 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     return this.connectionManager;
   }
 
+  @Provides
+  @Singleton
+  public RoutingGroupsManager getRoutingGroupsManager() {
+    return this.routingGroupsManager;
+  }
 }

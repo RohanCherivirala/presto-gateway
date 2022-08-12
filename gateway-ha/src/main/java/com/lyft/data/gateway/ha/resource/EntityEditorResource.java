@@ -1,11 +1,16 @@
 package com.lyft.data.gateway.ha.resource;
 
+import static com.lyft.data.gateway.ha.resource.GatewayResource.throwError;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
+
 import io.dropwizard.views.View;
 
 import java.io.IOException;
@@ -29,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Path("entity")
 public class EntityEditorResource {
-
   @Inject private GatewayBackendManager gatewayBackendManager;
+  @Inject private RoutingGroupsManager routingGroupsManager;
   public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   @GET
@@ -46,7 +51,8 @@ public class EntityEditorResource {
   }
 
   private enum EntityType {
-    GATEWAY_BACKEND
+    GATEWAY_BACKEND,
+    ROUTING_GROUPS
   }
 
   @GET
@@ -69,12 +75,18 @@ public class EntityEditorResource {
               OBJECT_MAPPER.readValue(jsonPayload, ProxyBackendConfiguration.class);
           gatewayBackendManager.updateBackend(backend);
           break;
+        case ROUTING_GROUPS:
+          RoutingGroupConfiguration group = 
+              OBJECT_MAPPER.readValue(jsonPayload, RoutingGroupConfiguration.class);
+          routingGroupsManager.updateRoutingGroup(group);
+          break;
         default:
       }
     } catch (IOException e) {
       log.error(e.getMessage(), e);
-      throw new WebApplicationException(e);
+      return throwError(e);
     }
+
     return Response.ok().build();
   }
 
@@ -87,6 +99,9 @@ public class EntityEditorResource {
     switch (entityType) {
       case GATEWAY_BACKEND:
         return Response.ok(gatewayBackendManager.getAllBackends()).build();
+      case ROUTING_GROUPS:
+        return Response.ok(routingGroupsManager
+            .getAllRoutingGroups(gatewayBackendManager.getAllBackends())).build();
       default:
     }
     return Response.ok(ImmutableList.of()).build();

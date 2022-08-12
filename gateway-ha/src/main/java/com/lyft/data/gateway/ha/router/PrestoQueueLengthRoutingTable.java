@@ -1,6 +1,9 @@
 package com.lyft.data.gateway.ha.router;
 
+import com.google.inject.Inject;
 import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
+
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -39,8 +42,9 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
    * Presto cluster queue length.
    */
   public PrestoQueueLengthRoutingTable(GatewayBackendManager gatewayBackendManager,
-                                       QueryHistoryManager queryHistoryManager) {
-    super(gatewayBackendManager, queryHistoryManager);
+                                       QueryHistoryManager queryHistoryManager,
+                                       RoutingGroupsManager routingGroupsManager) {
+    super(gatewayBackendManager, queryHistoryManager, routingGroupsManager);
     routingGroupWeightSum = new ConcurrentHashMap<String, Integer>();
     clusterQueueLengthMap = new ConcurrentHashMap<String, ConcurrentHashMap<String, Integer>>();
     weightedDistributionRouting = new HashMap<String, TreeMap<Integer, String>>();
@@ -273,9 +277,15 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
     List<ProxyBackendConfiguration> backends =
         getGatewayBackendManager().getActiveBackends(routingGroup);
 
-    if (backends.isEmpty()) {
+    List<RoutingGroupConfiguration> routingGroups =
+        routingGroupsManager.getAllRoutingGroups(backends);
+
+    if (backends.isEmpty()
+        || !routingGroupsManager.getByName(routingGroups, routingGroup).isActive()) {
+      log.debug("Routing group {} is currently paused or has no active backends", routingGroup);
       return provideAdhocBackend();
     }
+    
     Map<String, String> proxyMap = new HashMap<>();
     for (ProxyBackendConfiguration backend : backends) {
       proxyMap.put(backend.getName(), backend.getProxyTo());
@@ -305,8 +315,17 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
   public String provideAdhocBackend() {
     Map<String, String> proxyMap = new HashMap<>();
     List<ProxyBackendConfiguration> backends = getGatewayBackendManager().getActiveAdhocBackends();
+    
     if (backends.size() == 0) {
       throw new IllegalStateException("Number of active backends found zero");
+    }
+
+    List<RoutingGroupConfiguration> routingGroups =
+        routingGroupsManager.getAllRoutingGroups(backends);
+
+    if (!routingGroupsManager.getByName(routingGroups, "adhoc").isActive()) {
+      throw new IllegalStateException(
+          "All available backends are currently undergoing maintainence");
     }
 
     for (ProxyBackendConfiguration backend : backends) {

@@ -3,7 +3,10 @@ package com.lyft.data.gateway.ha;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.lyft.data.gateway.ha.config.DataStoreConfiguration;
+import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
+import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,6 +30,7 @@ import org.testng.Assert;
 public class HaGatewayTestUtils {
   private static final OkHttpClient httpClient = new OkHttpClient();
   private static final Random RANDOM = new Random();
+  private static RoutingGroupsManager routingGroupsManager;
 
   @Data
   @NoArgsConstructor
@@ -40,6 +44,7 @@ public class HaGatewayTestUtils {
     String jdbcUrl = "jdbc:h2:" + testConfig.getH2DbFilePath();
     DataStoreConfiguration db = new DataStoreConfiguration(jdbcUrl, "sa", "sa", "org.h2.Driver");
     JdbcConnectionManager connectionManager = new JdbcConnectionManager(db);
+    routingGroupsManager = new RoutingGroupsManager(connectionManager);
     connectionManager.open();
     Base.exec(HaGatewayTestUtils.getResourceFileContent("gateway-ha-persistence.sql"));
     connectionManager.close();
@@ -97,6 +102,7 @@ public class HaGatewayTestUtils {
   public static void setUpBackend(
       String name, String proxyTo, boolean active, String routingGroup, int routerPort)
       throws Exception {
+    routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration(routingGroup));
     RequestBody requestBody =
         RequestBody.create(
             MediaType.parse("application/json; charset=utf-8"),
