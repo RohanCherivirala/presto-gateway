@@ -52,7 +52,6 @@ public class TestPrestoQueueLengthRoutingTable {
                                                      routingGroupsManager);
 
     for (String grp : mockRoutingGroups) {
-      routingGroupsManager.updateRoutingGroup(new RoutingGroupConfiguration(grp));
       addMockBackends(grp, NUM_BACKENDS, 0);
     }
   }
@@ -67,6 +66,7 @@ public class TestPrestoQueueLengthRoutingTable {
   private void addMockBackends(String groupName, int numBackends,
                                int queueLengthDistributiveFactor) {
     String backend = null;
+    routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration(groupName));
 
     for (int i = 0; i < numBackends; i++) {
       backend = groupName + i;
