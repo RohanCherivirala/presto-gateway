@@ -1,21 +1,20 @@
-package com.lyft.data.gateway.ha.router;
+package com.lyft.data.query.processor.caching;
 
-import com.lyft.data.gateway.ha.caching.CachingDatabaseConnection;
-import com.lyft.data.gateway.ha.caching.RedisConnection;
-import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
+import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 public class CachingDatabaseManager {
   public static final String STALL_RESPONSE_SUFFIX = "-Initial-Response";
 
-  private HaGatewayConfiguration configuration;
+  private QueryProcessorConfiguration configuration;
   private CachingDatabaseConnection client;
 
-  public CachingDatabaseManager(HaGatewayConfiguration configuration) {
+  public CachingDatabaseManager(QueryProcessorConfiguration configuration) {
     this.configuration = configuration;
   }
 
   public void start() {
-    if (configuration.getCachingDatabase().getDatabaseType().equalsIgnoreCase("redis")) {
+    if (configuration.getCachingDatabase() != null
+        && configuration.getCachingDatabase().getDatabaseType().equalsIgnoreCase("redis")) {
       client = new RedisConnection(configuration);
     }
   }

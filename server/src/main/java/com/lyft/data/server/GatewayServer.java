@@ -121,7 +121,7 @@ public class GatewayServer implements Closeable {
 
     ServletHolder clientServlet = new ServletHolder("Client Servlet", client);
     
-    this.context.addServlet(clientServlet, ServerHandler.CLIENT_SERVER_PREFIX + "*");
+    this.context.addServlet(clientServlet, ServerHandler.CLIENT_SERVER_PREFIX + "/*");
 
     // Adds request filter
     this.context.addFilter(RequestFilter.class, "/*", EnumSet.allOf(DispatcherType.class));

@@ -1,6 +1,4 @@
-package com.lyft.data.gateway.ha.caching;
-
-import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
+package com.lyft.data.query.processor.caching;
 
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisConnectionException;
@@ -10,6 +8,8 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.reactive.RedisStringReactiveCommands;
 
 import java.util.Random;
+
+import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -28,7 +28,7 @@ public class RedisConnection extends CachingDatabaseConnection {
   private StatefulRedisConnection<String, String> statefulConnection;
   private RedisStringReactiveCommands<String, String> reactive;
 
-  public RedisConnection(HaGatewayConfiguration configuration) {
+  public RedisConnection(QueryProcessorConfiguration configuration) {
     try {
       client = RedisClient.create(RedisURI.create(
           configuration.getCachingDatabase().getHost(),

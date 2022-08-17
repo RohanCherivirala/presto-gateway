@@ -8,15 +8,14 @@ import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
 import com.lyft.data.gateway.ha.handler.QueryIdCachingServerHandler;
 import com.lyft.data.gateway.ha.persistence.JdbcConnectionManager;
-import com.lyft.data.gateway.ha.router.CachingDatabaseManager;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.HaGatewayManager;
 import com.lyft.data.gateway.ha.router.HaQueryHistoryManager;
-import com.lyft.data.gateway.ha.router.HaRoutingManager;
 import com.lyft.data.gateway.ha.router.PrestoQueueLengthRoutingTable;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
+import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 import com.lyft.data.server.GatewayServer;
 import com.lyft.data.server.config.GatewayServerConfiguration;
 import com.lyft.data.server.handler.ServerHandler;
@@ -104,6 +103,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   public CachingDatabaseManager getCachingDatabaseManager() {
     return this.cachingManager;
   }
+  
   @Provides
   @Singleton
   public RoutingGroupsManager getRoutingGroupsManager() {

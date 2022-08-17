@@ -4,5 +4,6 @@ import lombok.Data;
 
 @Data
 public class ClusterRequest {
+  private String queryId;
   private String nextUri;
 }

@@ -2,6 +2,7 @@ package com.lyft.data.gateway.ha;
 
 import com.lyft.data.baseapp.BaseApp;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
+
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.views.ViewBundle;

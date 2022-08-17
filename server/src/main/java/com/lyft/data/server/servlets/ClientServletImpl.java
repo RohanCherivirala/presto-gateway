@@ -60,7 +60,7 @@ public class ClientServletImpl extends HttpServlet {
    */
   private void redirectRequest(HttpServletRequest req, HttpServletResponse resp) 
       throws ServletException, IOException {
-    String newUri = serverHandler.removeClientFromUri(req.getRequestURI());
+    String newUri = ServerHandler.removeClientFromUri(req.getRequestURI());
 
     ((MultiReadHttpServletRequest)req).addHeader(ServerHandler.CLIENT_SERVER_REDIRECT, "true");
     req.getRequestDispatcher(newUri).forward(req, resp);

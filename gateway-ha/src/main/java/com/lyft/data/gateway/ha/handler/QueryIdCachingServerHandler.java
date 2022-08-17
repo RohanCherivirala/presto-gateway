@@ -8,9 +8,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 import com.google.common.io.CharStreams;
-import com.lyft.data.gateway.ha.router.CachingDatabaseManager;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
+import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 

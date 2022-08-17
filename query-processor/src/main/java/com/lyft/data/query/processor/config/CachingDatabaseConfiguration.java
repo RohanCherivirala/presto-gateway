@@ -1,4 +1,4 @@
-package com.lyft.data.gateway.ha.config;
+package com.lyft.data.query.processor.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

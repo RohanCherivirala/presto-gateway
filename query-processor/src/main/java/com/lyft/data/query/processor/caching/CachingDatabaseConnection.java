@@ -1,4 +1,4 @@
-package com.lyft.data.gateway.ha.caching;
+package com.lyft.data.query.processor.caching;
 
 public abstract class CachingDatabaseConnection {
   public abstract void open();
