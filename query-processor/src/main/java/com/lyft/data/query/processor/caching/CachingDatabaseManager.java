@@ -4,6 +4,9 @@ import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 public class CachingDatabaseManager {
   public static final String STALL_RESPONSE_SUFFIX = "-Initial-Response";
+  public static final String CACHED_PIECE_HEADER_SUFFIX = "-Cached-Piece-Headers";
+  public static final String CACHED_PIECE_BODY_SUFFIX = "-Cached-Piece-Body";
+  public static final String COMPLETION_SUFFIX = "-Processing-Completed";
 
   private QueryProcessorConfiguration configuration;
   private CachingDatabaseConnection client;

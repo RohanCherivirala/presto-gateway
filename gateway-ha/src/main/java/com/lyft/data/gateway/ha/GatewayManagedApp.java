@@ -8,16 +8,11 @@ import io.dropwizard.lifecycle.Managed;
 
 public class GatewayManagedApp implements Managed {
   @Inject private GatewayServer gateway;
-  @Inject private CachingDatabaseManager cachingDatabaseManager;
 
   @Override
   public void start() {
     if (gateway != null) {
       gateway.start();
-    }
-
-    if (cachingDatabaseManager != null) {
-      cachingDatabaseManager.start();
     }
   }
 
@@ -25,10 +20,6 @@ public class GatewayManagedApp implements Managed {
   public void stop() {
     if (gateway != null) {
       gateway.close();
-    }
-
-    if (cachingDatabaseManager != null) {
-      cachingDatabaseManager.shutdown();
     }
   }
 }

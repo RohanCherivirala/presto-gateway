@@ -44,6 +44,9 @@ public class RedisConnection extends CachingDatabaseConnection {
     }
   }
 
+  /**
+   * Open a redis connection.
+   */
   @Override
   public void open() {
     statefulConnection = client.connect();
@@ -51,31 +54,55 @@ public class RedisConnection extends CachingDatabaseConnection {
     log.debug("Redis connection opened");
   }
 
+  /**
+   * Close a redis connection.
+   */
   @Override
   public void close() {
     statefulConnection.close();
     log.debug("Redis connection closed");
   }
 
+  /**
+   * Gets the value associated with a key.
+   * @param key Redis key
+   * @Return The value associated with the key
+   */
   @Override
   public String get(String key) {
     Mono<String> response = reactive.get(key);
     return response.block();
   }
 
+  /**
+   * Sets a key associated a certain value with a default expiration time.
+   * @param key Redis key
+   * @param value Value associated with Redis key
+   * @return Set response
+   */
   @Override
   public String set(String key, String value) {
     return set(key, value, DEFAULT_EXPIRATION_TIME);
   }
 
+  /**
+   * Sets a key associated a certain value with a set expiration time.
+   * @param key Redis key
+   * @param value Value associated with Redis key
+   * @return Set response
+   */
   public String set(String key, String value, int expTime) {
     SetArgs setArgs = new SetArgs();
     setArgs.ex(expTime);
 
-    Mono<String> response = reactive.set(key, value);
+    Mono<String> response = reactive.set(key, value, setArgs);
     return response.block();
   }
 
+  /**
+   * Validates that the redis servre is connected.
+   * @return If the connection is valid
+   */
   @Override
   public boolean validateConnection() {
     Random rand = new Random();
@@ -93,6 +120,9 @@ public class RedisConnection extends CachingDatabaseConnection {
     }
   }
  
+  /**
+   * Shutsdown the redis client.
+   */
   @Override
   public void shutdown() {
     client.shutdown();
