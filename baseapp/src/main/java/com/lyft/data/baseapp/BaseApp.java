@@ -153,18 +153,36 @@ public abstract class BaseApp<T extends AppConfiguration> extends Application<T>
       log.warn("No modules to load.");
       return modules;
     }
+
     for (String clazz : configuration.getModules()) {
-      try {
-        log.info("Trying to load module [{}]", clazz);
-        Object ob =
-            Class.forName(clazz)
-                .getConstructor(configuration.getClass(), Environment.class)
+      log.info("Trying to load module [{}]", clazz);
+
+      boolean found = false;
+      Class configClass = configuration.getClass();
+      while (configClass != null) {
+        try {
+          Object ob =
+              Class.forName(clazz)
+                .getConstructor(configClass, Environment.class)
                 .newInstance(configuration, environment);
-        modules.add((AppModule) ob);
-      } catch (Exception e) {
-        log.error("Could not instantiate module [" + clazz + "]", e);
+          modules.add((AppModule) ob);
+
+          found = true;
+          break;
+        } catch (Exception e) {
+          log.debug("Could not instantiate module {} with config type {}", clazz, configClass, e);
+        }
+
+        configClass = configClass.getSuperclass();
       }
+
+      if (found) {
+        log.info("Module [{}] sucessfully loaded", clazz);
+      } else {
+        log.error("Could not instantiate module [" + clazz + "]");
+      } 
     }
+
     return modules;
   }
 

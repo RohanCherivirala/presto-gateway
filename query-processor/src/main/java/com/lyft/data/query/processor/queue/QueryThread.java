@@ -9,6 +9,10 @@ public class QueryThread extends Thread {
     this.interrupted = interrupted;
   }
 
+  public QueryThread(Runnable routine) {
+    this(routine, null);
+  }
+
   @Override
   public void run() {
     boolean completed = false;

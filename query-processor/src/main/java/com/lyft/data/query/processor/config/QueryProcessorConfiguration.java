@@ -8,5 +8,5 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class QueryProcessorConfiguration extends AppConfiguration {
-    private CachingDatabaseConfiguration cachingDatabase;
+  private CachingDatabaseConfiguration cachingDatabase;
 }

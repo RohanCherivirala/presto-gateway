@@ -1,5 +1,7 @@
 package com.lyft.data.query.processor.caching;
 
+import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
+
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisConnectionException;
 import io.lettuce.core.RedisURI;
@@ -8,8 +10,6 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.reactive.RedisStringReactiveCommands;
 
 import java.util.Random;
-
-import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
