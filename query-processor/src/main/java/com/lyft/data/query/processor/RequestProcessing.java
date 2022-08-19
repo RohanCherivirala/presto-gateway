@@ -5,14 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
+import com.lyft.data.query.processor.caching.QueryCaching;
 import com.lyft.data.query.processor.config.ClusterRequest;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,12 +51,12 @@ public class RequestProcessing {
         .setUrl(request.getNextUri())
         .build();
 
+    // Add request to queue if process terminates
+    QueryProcessor.getQueue().add(request.getQueryId());
+
     // Send request
     ListenableFuture<Response> future = QueryProcessor.getHttpClient()
         .executeRequest(getRequest);
-
-    // Add request to queue if process terminates
-    QueryProcessor.getQueue().add(request.getQueryId());
     
     future.addListener(() -> {
       try {
@@ -80,29 +80,10 @@ public class RequestProcessing {
     }
 
     byte[] body = response.getResponseBodyAsBytes();
-    String responseString = new String(body);
     String output = "";
 
-    try {
-      // Cache response headers
-      Iterator<Entry<String, String>> iter = response.getHeaders().iteratorAsString();
-      Map<String, String> headerMap = new HashMap<>();
-      while (iter.hasNext()) {
-        Entry<String, String> next = iter.next();
-        headerMap.put(next.getKey(), next.getValue());
-      }
-
-      String headerString = OBJECT_MAPPER.writeValueAsString(headerMap);
-
-      cachingManager.set(request.getNextUri() + CachingDatabaseManager.CACHED_PIECE_HEADER_SUFFIX, 
-          headerString);
-
-      // Cache response body
-      cachingManager.set(request.getNextUri() + CachingDatabaseManager.CACHED_PIECE_BODY_SUFFIX,
-          responseString);
-    } catch (Exception e) {
-      log.error("Error caching data for queryId [{}]", request.getQueryId(), e);
-    }
+    // Cache information
+    QueryCaching.cacheIncrementalResponse(request, response);
 
     // Parse response to check for error
     try {
@@ -123,18 +104,34 @@ public class RequestProcessing {
         log.debug("\n\nError Details:");
         log.debug(String.format("Error Code: %s ErrorName: %s Error Type: %s\n\n", 
                           errorCode, errorName, errorType));
+
+        requestCompleted(request.getQueryId());
       } else {
-        // Send next get request if required
         if (root.at("nextUri").isNull()) {
           // No nextUri field
           requestCompleted(request.getQueryId());
         } else {
+          // Send next get request if required
           submitNextGetRequest(
-             request.getQueryId(), root.at("nextUri").asText());
+              request.getQueryId(), root.at("nextUri").asText());
         }
       }
     } catch (Exception e) {
       log.error("Error extracting query payload from request", e);
+    }
+  }
+
+  public static void processNewRequest(HttpServletRequest request,
+      HttpServletResponse response, String queryId, String requestBody, String responseBody) {
+    try {
+      // Cache all request information
+      QueryCaching.cacheInitialInformation(request, response, queryId, requestBody, responseBody);
+
+      JsonNode root = OBJECT_MAPPER.readTree(responseBody);
+      submitNextGetRequest(
+          queryId, root.at("nextUri").asText());
+    } catch (Exception e) {
+      log.error("Error occured while processing a new request with queryId [{}]", queryId, e);
     }
   }
 

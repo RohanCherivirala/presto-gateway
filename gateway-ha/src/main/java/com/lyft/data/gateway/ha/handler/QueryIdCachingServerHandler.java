@@ -1,20 +1,18 @@
 package com.lyft.data.gateway.ha.handler;
 
 import com.codahale.metrics.Meter;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
+import com.lyft.data.query.processor.RequestProcessing;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
+import com.lyft.data.query.processor.caching.QueryCaching;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -131,42 +129,6 @@ public class QueryIdCachingServerHandler extends ServerHandler {
     }
   }
 
-  // Code used to read/edit response
-  /*
-  // This header is only contained on complete responses
-  if (response.containsHeader(CONTENT_LENGTH_HEADER)) {
-    try {
-      if (isGZipEncoding) {
-        output = plainTextFromGz(buffer);
-      } else {
-        output = new String(buffer);
-      }
-    } catch (Exception e) {
-      log.error("Error extracting query payload from request", e);
-    }
-          
-          length = buffer.length;
-          response.setContentLengthLong(length);
-          log.debug("New buf len: {}", length);
-        }
-
-        log.debug("\n\nNo Error Occurred!!!\n\n");
-      } else {
-        int errorCode = root.at("/error/errorCode").asInt();
-        String errorName = root.at("/error/errorName").asText();
-        String errorType = root.at("/error/errorType").asText();
-  
-        log.debug("\n\nError Details:");
-        log.debug(String.format("Error Code: %s ErrorName: %s Error Type: %s\n\n", 
-                          errorCode, errorName, errorType));
-      }
-    } catch (JsonParseException | EOFException e) {
-      log.debug("Response does not contain complete information");
-    }
-  }
-   */
-
-
   @Override
   public void postConnectionHook(
       HttpServletRequest request,
@@ -194,7 +156,9 @@ public class QueryIdCachingServerHandler extends ServerHandler {
         log.debug("Response output [{}]", output);
 
         // Store query information used to start call
-        QueryHistoryManager.QueryDetail queryDetail = getQueryDetailsFromRequest(request);
+        String queryText = CharStreams.toString(request.getReader());
+
+        QueryHistoryManager.QueryDetail queryDetail = getQueryDetailsFromRequest(request, queryText);
         log.debug("Proxy destination : {}", queryDetail.getBackendUrl());
 
         if (response.getStatus() == HttpStatus.OK_200) {
@@ -211,8 +175,8 @@ public class QueryIdCachingServerHandler extends ServerHandler {
                 queryDetail.getBackendUrl());
 
             // Caching response sent
-            cachingDatabaseManager.set(queryDetail.getQueryId()
-                  + CachingDatabaseManager.STALL_RESPONSE_SUFFIX, output);
+            RequestProcessing.processNewRequest(request, response,
+                queryDetail.getQueryId(), queryText, output);
 
             // Saving history at gateway.
             queryHistoryManager.submitQueryDetail(queryDetail);
@@ -241,7 +205,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
 
     try {
       String responseBody = cachingDatabaseManager.get(queryId 
-          + CachingDatabaseManager.STALL_RESPONSE_SUFFIX);
+          + CachingDatabaseManager.INITIAL_RESPONSE_BODY);
 
       if (Strings.isNullOrEmpty(responseBody)) {
         throw new InvalidCacheLoadException("No matching entry in cache");
@@ -257,8 +221,8 @@ public class QueryIdCachingServerHandler extends ServerHandler {
     return false;
   }
 
-  protected QueryHistoryManager.QueryDetail getQueryDetailsFromRequest(HttpServletRequest request)
-      throws IOException {
+  protected QueryHistoryManager.QueryDetail getQueryDetailsFromRequest(HttpServletRequest request,
+      String queryText) throws IOException {
     QueryHistoryManager.QueryDetail queryDetail = new QueryHistoryManager.QueryDetail();
     queryDetail.setBackendUrl(request.getHeader(PROXY_TARGET_HEADER));
     queryDetail.setCaptureTime(System.currentTimeMillis());
@@ -266,7 +230,6 @@ public class QueryIdCachingServerHandler extends ServerHandler {
             .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
     queryDetail.setSource(Optional.ofNullable(request.getHeader(SOURCE_HEADER))
             .orElse(request.getHeader(ALTERNATE_SOURCE_HEADER)));
-    String queryText = CharStreams.toString(request.getReader());
     queryDetail.setQueryText(
         queryText.length() > QUERY_TEXT_LENGTH_FOR_HISTORY
             ? queryText.substring(0, QUERY_TEXT_LENGTH_FOR_HISTORY) + "..."
