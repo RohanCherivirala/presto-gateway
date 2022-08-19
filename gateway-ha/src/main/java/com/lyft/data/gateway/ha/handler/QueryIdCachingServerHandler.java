@@ -1,6 +1,7 @@
 package com.lyft.data.gateway.ha.handler;
 
 import com.codahale.metrics.Meter;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
@@ -8,14 +9,12 @@ import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
-import com.lyft.data.query.processor.caching.QueryCaching;
-import com.lyft.data.query.processor.processing.RequestProcessing;
+import com.lyft.data.query.processor.processing.RequestProcessingManager;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,6 +32,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
   private final RoutingManager routingManager;
   private final QueryHistoryManager queryHistoryManager;
   private final CachingDatabaseManager cachingDatabaseManager;
+  private final RequestProcessingManager requestProcessingManager;
 
   private final Meter requestMeter;
 
@@ -41,19 +41,18 @@ public class QueryIdCachingServerHandler extends ServerHandler {
       RoutingManager routingManager,
       CachingDatabaseManager cachingDatabaseManager,
       int serverApplicationPort,
-      Meter requestMeter) {
+      Meter requestMeter,
+      RequestProcessingManager requestProcessingManager) {
     super(serverApplicationPort);
     this.queryHistoryManager = queryHistoryManager;
     this.routingManager = routingManager;
     this.cachingDatabaseManager = cachingDatabaseManager;
     this.requestMeter = requestMeter;
+    this.requestProcessingManager = requestProcessingManager;
   }
 
   @Override
   public String rewriteTarget(HttpServletRequest request) {
-    debugLogHeaders(request);
-    log.debug("\n\nREWRITING TARGET\n\n");
-
     /* Here comes the load balancer / gateway */
     String backendAddress = "http://localhost:" + serverApplicationPort;
 
@@ -158,12 +157,13 @@ public class QueryIdCachingServerHandler extends ServerHandler {
         // Store query information used to start call
         String queryText = CharStreams.toString(request.getReader());
 
-        QueryHistoryManager.QueryDetail queryDetail = getQueryDetailsFromRequest(request, queryText);
+        QueryHistoryManager.QueryDetail queryDetail = 
+            getQueryDetailsFromRequest(request, queryText);
         log.debug("Proxy destination : {}", queryDetail.getBackendUrl());
 
         if (response.getStatus() == HttpStatus.OK_200) {
-          HashMap<String, String> results = OBJECT_MAPPER.readValue(output, HashMap.class);
-          queryDetail.setQueryId(results.get("id"));
+          JsonNode root = OBJECT_MAPPER.readTree(output);
+          queryDetail.setQueryId(root.at("/id").asText());
 
           if (!Strings.isNullOrEmpty(queryDetail.getQueryId())) {
             routingManager.setBackendForQueryId(
@@ -175,7 +175,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
                 queryDetail.getBackendUrl());
 
             // Caching response sent
-            RequestProcessing.processNewRequest(request, response,
+            requestProcessingManager.processNewRequest(request, response,
                 queryDetail.getQueryId(), queryText, output);
 
             // Saving history at gateway.

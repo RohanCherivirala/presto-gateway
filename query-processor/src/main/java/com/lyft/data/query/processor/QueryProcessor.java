@@ -33,4 +33,11 @@ public class QueryProcessor {
   public static AsyncHttpClient getHttpClient() {
     return httpClient;
   }
+
+  /**
+   * Shutds down query processor application.
+   */
+  public static void shutdown() {
+    terminated = true;
+  }
 }

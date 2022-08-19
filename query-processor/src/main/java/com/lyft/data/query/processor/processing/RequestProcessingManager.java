@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.QueryProcessor;
-import com.lyft.data.query.processor.caching.CachingDatabaseManager;
-import com.lyft.data.query.processor.caching.QueryCaching;
+import com.lyft.data.query.processor.caching.QueryCachingManager;
 import com.lyft.data.query.processor.config.ClusterRequest;
 
 import java.util.concurrent.ExecutionException;
@@ -26,20 +25,23 @@ import org.asynchttpclient.Response;
 import org.asynchttpclient.util.HttpConstants;
 
 @Slf4j
-public class RequestProcessing {
+public class RequestProcessingManager {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  @Inject 
-  private static ThreadPoolExecutor queue;
-
-  @Inject
-  private static CachingDatabaseManager cachingManager;
+  private final ThreadPoolExecutor queue;
+  private final QueryCachingManager queryCachingManager;
+  
+  public RequestProcessingManager(ThreadPoolExecutor queue,
+      QueryCachingManager queryCachingManager) {
+    this.queue = queue;
+    this.queryCachingManager = queryCachingManager;
+  }
 
   /**
    * Processes a request in the queue and sends the corresponding request.
    * @param request Information about the request
    */
-  public static void processRequest(ClusterRequest request) 
+  public void processRequest(ClusterRequest request) 
       throws InterruptedException, ExecutionException {
     // App is about to be shutdown
     if (QueryProcessor.isTerminated()) {
@@ -72,7 +74,7 @@ public class RequestProcessing {
    * Processes a response received from a cluster.
    * @param response Response recieved
    */
-  public static void processResponse(ClusterRequest request, Response response) {
+  public void processResponse(ClusterRequest request, Response response) {
     // App is about to be shutdown
     if (QueryProcessor.isTerminated()) {
       return;
@@ -84,7 +86,7 @@ public class RequestProcessing {
     String output = "";
 
     // Cache information
-    QueryCaching.cacheIncrementalResponse(request, response);
+    queryCachingManager.cacheIncrementalResponse(request, response);
 
     // Parse response to check for error
     try {
@@ -122,15 +124,16 @@ public class RequestProcessing {
     }
   }
 
-  public static void processNewRequest(HttpServletRequest request,
+  public void processNewRequest(HttpServletRequest request,
       HttpServletResponse response, String queryId, String requestBody, String responseBody) {
     try {
       // Cache all request information
-      QueryCaching.cacheInitialInformation(request, response, queryId, requestBody, responseBody);
+      queryCachingManager.cacheInitialInformation(request, response, 
+          queryId, requestBody, responseBody);
 
       JsonNode root = OBJECT_MAPPER.readTree(responseBody);
       submitNextGetRequest(
-          queryId, root.at("nextUri").asText());
+          queryId, root.at("/nextUri").asText());
     } catch (Exception e) {
       log.error("Error occured while processing a new request with queryId [{}]", queryId, e);
     }
@@ -140,8 +143,8 @@ public class RequestProcessing {
    * This function is called when a request is completed.
    * @param queryId The query id of the completed request.
    */
-  private static void requestCompleted(String queryId) {
-    cachingManager.set(queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "true");
+  private void requestCompleted(String queryId) {
+    queryCachingManager.cacheRequestCompleted(queryId);
   }
 
   /**
@@ -149,7 +152,7 @@ public class RequestProcessing {
    * @param queryId The query id of the request
    * @param nextUri The next uri of the request
    */
-  private static void submitNextGetRequest(String queryId, String nextUri) {
+  private void submitNextGetRequest(String queryId, String nextUri) {
     ClusterRequest newRequest = new ClusterRequest(queryId, nextUri);
 
     queue.submit(() -> {

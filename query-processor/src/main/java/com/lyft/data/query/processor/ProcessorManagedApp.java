@@ -1,11 +1,11 @@
 package com.lyft.data.query.processor;
 
-import java.util.concurrent.ThreadPoolExecutor;
-
 import com.google.inject.Inject;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 
 import io.dropwizard.lifecycle.Managed;
+
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class ProcessorManagedApp implements Managed {
   @Inject private CachingDatabaseManager cachingDatabaseManager;
@@ -24,6 +24,7 @@ public class ProcessorManagedApp implements Managed {
       cachingDatabaseManager.shutdown();
     }
 
+    QueryProcessor.shutdown();
     queue.shutdown();
   }
 }

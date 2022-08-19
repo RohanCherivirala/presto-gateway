@@ -1,7 +1,6 @@
 package com.lyft.data.gateway.ha;
 
 import com.google.inject.Inject;
-import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 import com.lyft.data.server.GatewayServer;
 
 import io.dropwizard.lifecycle.Managed;

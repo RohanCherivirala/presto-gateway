@@ -132,7 +132,6 @@ public class GatewayServer implements Closeable {
   }
 
   public void start() {
-
     try {
       this.server.start();
     } catch (Exception e) {

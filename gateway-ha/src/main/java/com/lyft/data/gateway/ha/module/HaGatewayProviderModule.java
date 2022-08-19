@@ -16,6 +16,8 @@ import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
+import com.lyft.data.query.processor.module.QueryProcessorProviderModule;
+import com.lyft.data.query.processor.processing.RequestProcessingManager;
 import com.lyft.data.server.GatewayServer;
 import com.lyft.data.server.config.GatewayServerConfiguration;
 import com.lyft.data.server.handler.ServerHandler;
@@ -28,8 +30,9 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   private final RoutingManager routingManager;
   private final JdbcConnectionManager connectionManager;
   private final RoutingGroupsManager routingGroupsManager;
-  private final CachingDatabaseManager cachingManager;
-
+  private final CachingDatabaseManager cachingDatabaseManager;
+  private final RequestProcessingManager requestProcessingManager;
+  
   public HaGatewayProviderModule(HaGatewayConfiguration configuration, Environment environment) {
     super(configuration, environment);
     connectionManager = new JdbcConnectionManager(configuration.getDataStore());
@@ -39,7 +42,8 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     routingManager = new PrestoQueueLengthRoutingTable(gatewayBackendManager,
                                (HaQueryHistoryManager) queryHistoryManager,
                                routingGroupsManager);
-    cachingManager = new CachingDatabaseManager(configuration);
+    cachingDatabaseManager = QueryProcessorProviderModule.staticCachingManager;
+    requestProcessingManager = QueryProcessorProviderModule.staticRequestManager;
   }
 
   protected ServerHandler getProxyHandler() {
@@ -48,8 +52,8 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
             .metrics()
             .meter(getConfiguration().getRequestRouter().getName() + ".requests");
     return new QueryIdCachingServerHandler(
-        getQueryHistoryManager(), getRoutingManager(), getCachingDatabaseManager(),
-        getApplicationPort(), requestMeter);
+        getQueryHistoryManager(), getRoutingManager(), cachingDatabaseManager,
+        getApplicationPort(), requestMeter, requestProcessingManager);
   }
 
   @Provides
@@ -71,6 +75,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
       ServerHandler proxyHandler = getProxyHandler();
       gateway = new GatewayServer(routerProxyConfig, proxyHandler);
     }
+    
     return gateway;
   }
 
@@ -96,12 +101,6 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   @Singleton
   public JdbcConnectionManager getConnectionManager() {
     return this.connectionManager;
-  }
-
-  @Provides
-  @Singleton
-  public CachingDatabaseManager getCachingDatabaseManager() {
-    return this.cachingManager;
   }
   
   @Provides

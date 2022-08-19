@@ -2,7 +2,6 @@ package com.lyft.data.query.processor.caching;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
 import com.lyft.data.query.processor.config.ClusterRequest;
 
 import java.util.Collection;
@@ -22,18 +21,25 @@ import org.apache.http.HttpHeaders;
 import org.asynchttpclient.Response;
 
 @Slf4j
-public class QueryCaching {
+public class QueryCachingManager {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   
-  @Inject
-  private static CachingDatabaseManager cachingManager;
+  private CachingDatabaseManager cachingManager;
+
+  /**
+   * Constructor for a query caching manager.
+   * @param cachingManager Caching database manager
+   */
+  public QueryCachingManager(CachingDatabaseManager cachingManager) {
+    this.cachingManager = cachingManager;
+  }
 
   /**
    * Caches the response.
    * @param request Request information
    * @param response Response information
    */
-  public static void cacheIncrementalResponse(ClusterRequest request, Response response) {
+  public void cacheIncrementalResponse(ClusterRequest request, Response response) {
     String responseString = response.getResponseBody();
 
     try {
@@ -63,15 +69,15 @@ public class QueryCaching {
    * @param request  Initial http servlet request
    * @param response Response to initial servlet request
    */
-  public static void cacheInitialInformation(HttpServletRequest request,
+  public void cacheInitialInformation(HttpServletRequest request,
       HttpServletResponse response, String queryId, String requestBody, String responseBody) {
     try {
       // Cache request headers
       Enumeration<String> requestHeaders = request.getHeaderNames();
       HashMap<String, String> requestHeaderMap = new HashMap<>();
       while (requestHeaders.hasMoreElements()) {
-        String nHeader = requestHeaders.nextElement();
-        requestHeaderMap.put(nHeader, request.getHeader(nHeader));
+        String newHeader = requestHeaders.nextElement();
+        requestHeaderMap.put(newHeader, request.getHeader(newHeader));
       }
 
       cacheHeader(requestHeaderMap, queryId, CachingDatabaseManager.INITIAL_REQUEST_HEADERS);
@@ -82,8 +88,8 @@ public class QueryCaching {
       // Cache response headers
       Collection<String> responseHeaders = response.getHeaderNames();
       HashMap<String, String> responseHeaderMap = new HashMap<>();
-      for (String nHeader : responseHeaders) {
-        responseHeaderMap.put(nHeader, response.getHeader(nHeader));
+      for (String newHeader : responseHeaders) {
+        responseHeaderMap.put(newHeader, response.getHeader(newHeader));
       }
 
       // Remove content encoding header if present (Indicate plaintext response)
@@ -105,9 +111,17 @@ public class QueryCaching {
    * @param prefix  Prefix of key
    * @param suffix  Suffix of key
    */
-  private static void cacheHeader(Map<String, String> headers, String prefix, String suffix)
+  private void cacheHeader(Map<String, String> headers, String prefix, String suffix)
       throws JsonProcessingException {
     String headerString = OBJECT_MAPPER.writeValueAsString(headers);
     cachingManager.set(prefix + suffix, headerString);
+  }
+
+  /**
+   * Caches the information that a request has been completed.
+   * @param queryId The queryId of the request
+   */
+  public void cacheRequestCompleted(String queryId) {
+    cachingManager.set(queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "true");
   }
 }
