@@ -7,9 +7,9 @@ import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
-import com.lyft.data.query.processor.RequestProcessing;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 import com.lyft.data.query.processor.caching.QueryCaching;
+import com.lyft.data.query.processor.processing.RequestProcessing;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 

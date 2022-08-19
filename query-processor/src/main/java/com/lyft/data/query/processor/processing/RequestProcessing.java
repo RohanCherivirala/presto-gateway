@@ -1,9 +1,10 @@
-package com.lyft.data.query.processor;
+package com.lyft.data.query.processor.processing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.lyft.data.baseapp.BaseHandler;
+import com.lyft.data.query.processor.QueryProcessor;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 import com.lyft.data.query.processor.caching.QueryCaching;
 import com.lyft.data.query.processor.config.ClusterRequest;
