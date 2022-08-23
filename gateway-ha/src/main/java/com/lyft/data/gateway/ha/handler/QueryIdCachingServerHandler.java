@@ -9,6 +9,7 @@ import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
+import com.lyft.data.query.processor.caching.QueryCachingManager;
 import com.lyft.data.query.processor.processing.RequestProcessingManager;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
@@ -33,6 +34,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
   private final QueryHistoryManager queryHistoryManager;
   private final CachingDatabaseManager cachingDatabaseManager;
   private final RequestProcessingManager requestProcessingManager;
+  private final QueryCachingManager queryCachingManager;
 
   private final Meter requestMeter;
 
@@ -42,13 +44,15 @@ public class QueryIdCachingServerHandler extends ServerHandler {
       CachingDatabaseManager cachingDatabaseManager,
       int serverApplicationPort,
       Meter requestMeter,
-      RequestProcessingManager requestProcessingManager) {
+      RequestProcessingManager requestProcessingManager,
+      QueryCachingManager queryCachingManager) {
     super(serverApplicationPort);
     this.queryHistoryManager = queryHistoryManager;
     this.routingManager = routingManager;
     this.cachingDatabaseManager = cachingDatabaseManager;
     this.requestMeter = requestMeter;
     this.requestProcessingManager = requestProcessingManager;
+    this.queryCachingManager = queryCachingManager;
   }
 
   @Override
@@ -137,6 +141,8 @@ public class QueryIdCachingServerHandler extends ServerHandler {
       int length,
       Callback callback) {
     try {
+      debugLogHeaders(request);
+      debugLogHeaders(response);
       String requestPath = request.getRequestURI();
 
       if (requestPath.startsWith(V1_STATEMENT_PATH)
@@ -176,7 +182,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
 
             // Caching response sent
             requestProcessingManager.processNewRequest(request, response,
-                queryDetail.getQueryId(), queryText, output);
+                queryDetail.getBackendUrl(), queryDetail.getQueryId(), queryText, output);
 
             // Saving history at gateway.
             queryHistoryManager.submitQueryDetail(queryDetail);
@@ -204,15 +210,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
     String queryId = extractQueryIdIfPresent(removeClientFromUri(req.getRequestURI()), req);
 
     try {
-      String responseBody = cachingDatabaseManager.get(queryId 
-          + CachingDatabaseManager.INITIAL_RESPONSE_BODY);
-
-      if (Strings.isNullOrEmpty(responseBody)) {
-        throw new InvalidCacheLoadException("No matching entry in cache");
-      }
-
-      fillRepsonseBody(responseBody.getBytes(Charset.defaultCharset()), resp);
-
+      queryCachingManager.fillResponseForClient(req, resp, queryId);
       return true;
     } catch (Exception e) {
       log.error("Error occured when returning response from cache for [{}]", queryId, e);

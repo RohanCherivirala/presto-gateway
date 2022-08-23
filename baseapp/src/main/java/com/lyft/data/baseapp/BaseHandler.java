@@ -118,4 +118,13 @@ public abstract class BaseHandler {
     return (compressed[0] == (byte) (GZIPInputStream.GZIP_MAGIC))
         && (compressed[1] == (byte) (GZIPInputStream.GZIP_MAGIC >> 8));
   }
+
+  /**
+   * Takes in an edited uri and removes the client portion from the tag.
+   * @param requestUri Request Uri from client
+   * @return Request Uri without the client info
+   */
+  public static String removeClientFromUri(String requestUri) {
+    return requestUri.replace(CLIENT_SERVER_PREFIX, "");
+  }
 }

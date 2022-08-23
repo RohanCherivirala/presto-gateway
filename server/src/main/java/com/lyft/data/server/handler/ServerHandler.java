@@ -123,21 +123,6 @@ public class ServerHandler extends BaseHandler {
   }
 
   /**
-   * Fills response body based on byte array.
-   * @param bytes Bytes to fill response body
-   * @param response Response to be sent to client
-   * @throws IOException
-   */
-  protected void fillRepsonseBody(final byte[] bytes, HttpServletResponse response) 
-      throws IOException {
-    response.setHeader(CONTENT_LENGTH_HEADER, bytes.length + "");
-    response.setHeader(CONTENT_TYPE_HEADER, "application/json");
-    response.setDateHeader(DATE_HEADER, System.currentTimeMillis());
-
-    response.getOutputStream().write(bytes);
-  }
-
-  /**
    * Extract query id from request if possible.
    * @param request {@link HttpServletRequest} sent by client
    * @return Query id
@@ -212,15 +197,6 @@ public class ServerHandler extends BaseHandler {
         || path.startsWith(PRESTO_UI_PATH)
         || path.startsWith(V1_INFO_PATH)
         || path.startsWith(UI_API_STATS_PATH);
-  }
-
-  /**
-   * Takes in an edited uri and removes the client portion from the tag.
-   * @param requestUri Request Uri from client
-   * @return Request Uri without the client info
-   */
-  public static String removeClientFromUri(String requestUri) {
-    return requestUri.substring(CLIENT_SERVER_PREFIX.length());
   }
 
   /**

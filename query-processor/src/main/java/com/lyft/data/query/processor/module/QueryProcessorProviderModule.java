@@ -34,6 +34,7 @@ public class QueryProcessorProviderModule
 
   public static CachingDatabaseManager staticCachingManager;
   public static RequestProcessingManager staticRequestManager;
+  public static QueryCachingManager staticQueryCachingManager;
 
   public QueryProcessorProviderModule(QueryProcessorConfiguration config, Environment env) {
     super(config, env);
@@ -48,6 +49,7 @@ public class QueryProcessorProviderModule
 
     QueryProcessorProviderModule.staticCachingManager = cachingManager;
     QueryProcessorProviderModule.staticRequestManager = requestProcessingManager;
+    QueryProcessorProviderModule.staticQueryCachingManager = queryCachingManager;
   }
 
   /**

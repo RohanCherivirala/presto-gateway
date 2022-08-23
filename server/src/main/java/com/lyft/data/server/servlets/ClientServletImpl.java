@@ -42,15 +42,13 @@ public class ClientServletImpl extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    log.debug("Reached client server GET");
-
     if (serverHandler.fillResponseForQueryFromCache(req, resp)) {
       resp.setStatus(HttpServletResponse.SC_OK);
-      resp.flushBuffer();
-      serverHandler.debugLogHeaders(resp);
     } else {
       resp.sendError(HttpServletResponse.SC_NOT_FOUND);
     }
+
+    resp.flushBuffer();
   }
 
   /**

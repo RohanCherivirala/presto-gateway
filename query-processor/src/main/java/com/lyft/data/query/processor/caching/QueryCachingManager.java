@@ -2,8 +2,13 @@ package com.lyft.data.query.processor.caching;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
+import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
+import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.config.ClusterRequest;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -52,11 +57,12 @@ public class QueryCachingManager {
       }
 
       cacheHeader(headerMap, 
-          request.getNextUri(), 
+          request.getOriginalNextUri(), 
           CachingDatabaseManager.CACHED_PIECE_HEADER_SUFFIX);
 
       // Cache response body
-      cachingManager.set(request.getNextUri() + CachingDatabaseManager.CACHED_PIECE_BODY_SUFFIX,
+      cachingManager.set(
+          request.getOriginalNextUri() + CachingDatabaseManager.CACHED_PIECE_BODY_SUFFIX,
           responseString);
     } catch (Exception e) {
       log.error("Error caching data for queryId [{}]", request.getQueryId(), e);
@@ -72,6 +78,9 @@ public class QueryCachingManager {
   public void cacheInitialInformation(HttpServletRequest request,
       HttpServletResponse response, String queryId, String requestBody, String responseBody) {
     try {
+      // Indicate that the query has been started
+      cachingManager.set(queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "false");
+
       // Cache request headers
       Enumeration<String> requestHeaders = request.getHeaderNames();
       HashMap<String, String> requestHeaderMap = new HashMap<>();
@@ -123,5 +132,49 @@ public class QueryCachingManager {
    */
   public void cacheRequestCompleted(String queryId) {
     cachingManager.set(queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "true");
+  }
+
+  /**
+   * Fills the HttpServlet response based on data in the cache.
+   * @param req Http request
+   * @param resp Http response
+   * @param queryId Query Id
+   */
+  public void fillResponseForClient(HttpServletRequest req,
+      HttpServletResponse resp, String queryId) throws IOException {
+    String responseBody = "";
+
+    if (cachingManager.get(queryId + CachingDatabaseManager.COMPLETION_SUFFIX).equals("true")) {
+      // Complete response has been recieved
+      String correctedUrl = BaseHandler.removeClientFromUri(req.getRequestURL().toString());
+      
+      responseBody = cachingManager.get(correctedUrl
+          + CachingDatabaseManager.CACHED_PIECE_BODY_SUFFIX);
+    } else {
+      // Query is still being processed
+      responseBody = cachingManager.get(queryId 
+        + CachingDatabaseManager.INITIAL_RESPONSE_BODY);
+    }
+
+    if (Strings.isNullOrEmpty(responseBody)) {
+      throw new InvalidCacheLoadException("No matching entry in cache");
+    }
+
+    fillResponseBody(responseBody.getBytes(Charset.defaultCharset()), resp);
+  }
+
+  /**
+   * Fills response body based on byte array.
+   * @param bytes Bytes to fill response body
+   * @param response Response to be sent to client
+   * @throws IOException
+   */
+  private void fillResponseBody(final byte[] bytes, HttpServletResponse response) 
+      throws IOException {
+    response.setHeader(BaseHandler.CONTENT_LENGTH_HEADER, bytes.length + "");
+    response.setHeader(BaseHandler.CONTENT_TYPE_HEADER, "application/json");
+    response.setDateHeader(BaseHandler.DATE_HEADER, System.currentTimeMillis());
+
+    response.getOutputStream().write(bytes);
   }
 }

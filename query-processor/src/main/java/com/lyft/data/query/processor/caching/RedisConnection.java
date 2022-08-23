@@ -34,6 +34,8 @@ public class RedisConnection extends CachingDatabaseConnection {
           configuration.getCachingDatabase().getHost(),
           configuration.getCachingDatabase().getPort()));
 
+      startup();
+
       if (!validateConnection()) {
         throw new RedisConnectionException("Unable to connect");
       }
@@ -45,21 +47,26 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
-   * Open a redis connection.
+   * Starts a redis connection.
+   */
+  public void startup() {
+    statefulConnection = client.connect();
+    reactive = statefulConnection.reactive();
+  }
+
+  /**
+   * Open a redis connection (Not required for redis as connections are long-lived).
    */
   @Override
   public void open() {
-    statefulConnection = client.connect();
-    reactive = statefulConnection.reactive();
     log.debug("Redis connection opened");
   }
 
   /**
-   * Close a redis connection.
+   * Close a redis connection (Not required for redis as connections are long-lived).
    */
   @Override
   public void close() {
-    statefulConnection.close();
     log.debug("Redis connection closed");
   }
 
@@ -125,6 +132,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public void shutdown() {
+    statefulConnection.close();
     client.shutdown();
     log.debug("Redis connection stopped");
   }

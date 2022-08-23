@@ -91,10 +91,7 @@ public class ProxyServletImpl extends ProxyServlet.Transparent {
         this._log.debug(
             "[{}] proxying content to downstream: [{}] bytes", this.getRequestId(request), length);
       }
-
-      this._log.debug("\n\nPROXY HANDLER IS {}\n\n", proxyHandler == null ? "NULL" : "NOT NULL");
-      this._log.debug("\nOFFSET: {} \n", offset);
-
+      
       if (this.proxyHandler != null) {
         proxyHandler.postConnectionHook(request, response, buffer, offset, length, callback);
       } else {

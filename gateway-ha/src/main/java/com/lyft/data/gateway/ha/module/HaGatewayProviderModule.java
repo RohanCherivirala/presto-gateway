@@ -16,6 +16,7 @@ import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
+import com.lyft.data.query.processor.caching.QueryCachingManager;
 import com.lyft.data.query.processor.module.QueryProcessorProviderModule;
 import com.lyft.data.query.processor.processing.RequestProcessingManager;
 import com.lyft.data.server.GatewayServer;
@@ -32,6 +33,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
   private final RoutingGroupsManager routingGroupsManager;
   private final CachingDatabaseManager cachingDatabaseManager;
   private final RequestProcessingManager requestProcessingManager;
+  private final QueryCachingManager queryCachingManager;
   
   public HaGatewayProviderModule(HaGatewayConfiguration configuration, Environment environment) {
     super(configuration, environment);
@@ -44,6 +46,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
                                routingGroupsManager);
     cachingDatabaseManager = QueryProcessorProviderModule.staticCachingManager;
     requestProcessingManager = QueryProcessorProviderModule.staticRequestManager;
+    queryCachingManager = QueryProcessorProviderModule.staticQueryCachingManager;
   }
 
   protected ServerHandler getProxyHandler() {
@@ -53,7 +56,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
             .meter(getConfiguration().getRequestRouter().getName() + ".requests");
     return new QueryIdCachingServerHandler(
         getQueryHistoryManager(), getRoutingManager(), cachingDatabaseManager,
-        getApplicationPort(), requestMeter, requestProcessingManager);
+        getApplicationPort(), requestMeter, requestProcessingManager, queryCachingManager);
   }
 
   @Provides
