@@ -4,10 +4,11 @@ import com.google.inject.Inject;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 
 import io.dropwizard.lifecycle.Managed;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class is a managed app that manages all shutdown and startup
@@ -41,7 +42,7 @@ public class ProcessorManagedApp implements Managed {
       while (!QueryProcessor.getQueue().isEmpty()) {
         String nextQueryId = QueryProcessor.getQueue().poll();
         cachingDatabaseManager.addToList(
-            CachingDatabaseManager.INITIAL_REQUEST_BODY, nextQueryId);
+            CachingDatabaseManager.HUNG_QUERIES_KEY, nextQueryId);
       }
 
       log.info("Query Processor Sucessfully Shutdown");

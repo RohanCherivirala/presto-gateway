@@ -8,6 +8,7 @@ import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.config.ClusterRequest;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -46,6 +47,7 @@ public class QueryCachingManager {
    */
   public void cacheIncrementalResponse(ClusterRequest request, Response response) {
     String responseString = response.getResponseBody();
+    String cacheKey = getIncrementalCacheKey(request.getNextUri());
 
     try {
       // Cache response headers
@@ -56,13 +58,10 @@ public class QueryCachingManager {
         headerMap.put(next.getKey(), next.getValue());
       }
 
-      cacheHeader(headerMap, 
-          request.getOriginalNextUri(), 
-          CachingDatabaseManager.CACHED_PIECE_HEADER_SUFFIX);
+      cacheHeader(headerMap, cacheKey, "");
 
       // Cache response body
-      cachingManager.set(
-          request.getOriginalNextUri() + CachingDatabaseManager.CACHED_PIECE_BODY_SUFFIX,
+      cachingManager.addToHash(cacheKey, CachingDatabaseManager.BODY_FIELD,
           responseString);
     } catch (Exception e) {
       log.error("Error caching data for queryId [{}]", request.getQueryId(), e);
@@ -79,7 +78,8 @@ public class QueryCachingManager {
       HttpServletResponse response, String queryId, String requestBody, String responseBody) {
     try {
       // Indicate that the query has been started
-      cachingManager.set(queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "false");
+      cachingManager.set(CachingDatabaseManager.QUERY_CACHE_PREFIX
+          + queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "false");
 
       // Cache request headers
       Enumeration<String> requestHeaders = request.getHeaderNames();
@@ -89,10 +89,14 @@ public class QueryCachingManager {
         requestHeaderMap.put(newHeader, request.getHeader(newHeader));
       }
 
-      cacheHeader(requestHeaderMap, queryId, CachingDatabaseManager.INITIAL_REQUEST_HEADERS);
+      cacheHeader(requestHeaderMap, 
+          CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId,
+          CachingDatabaseManager.INITIAL_REQUEST_SUFFIX);
 
       // Cache request body
-      cachingManager.set(queryId + CachingDatabaseManager.INITIAL_REQUEST_BODY, requestBody);
+      cachingManager.addToHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
+          + queryId + CachingDatabaseManager.INITIAL_REQUEST_SUFFIX, 
+          CachingDatabaseManager.BODY_FIELD, requestBody);
 
       // Cache response headers
       Collection<String> responseHeaders = response.getHeaderNames();
@@ -104,10 +108,14 @@ public class QueryCachingManager {
       // Remove content encoding header if present (Indicate plaintext response)
       responseHeaderMap.remove(HttpHeaders.CONTENT_ENCODING);
 
-      cacheHeader(responseHeaderMap, queryId, CachingDatabaseManager.INITIAL_RESPONSE_HEADER);
+      cacheHeader(responseHeaderMap, 
+          CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId,
+          CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX);
 
       // Cache response body
-      cachingManager.set(queryId + CachingDatabaseManager.INITIAL_RESPONSE_BODY, responseBody);
+      cachingManager.addToHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
+          + queryId + CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX, 
+          CachingDatabaseManager.BODY_FIELD, responseBody);
     } catch (Exception e) {
       log.error("Error caching initial request and response for queryId [{}]", queryId, e);
     }
@@ -123,7 +131,7 @@ public class QueryCachingManager {
   private void cacheHeader(Map<String, String> headers, String prefix, String suffix)
       throws JsonProcessingException {
     String headerString = OBJECT_MAPPER.writeValueAsString(headers);
-    cachingManager.set(prefix + suffix, headerString);
+    cachingManager.addToHash(prefix + suffix, CachingDatabaseManager.HEADER_FIELD, headerString);
   }
 
   /**
@@ -131,7 +139,8 @@ public class QueryCachingManager {
    * @param queryId The queryId of the request
    */
   public void cacheRequestCompleted(String queryId) {
-    cachingManager.set(queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "true");
+    cachingManager.set(CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId
+        + CachingDatabaseManager.COMPLETION_SUFFIX, "true");
   }
 
   /**
@@ -144,16 +153,17 @@ public class QueryCachingManager {
       HttpServletResponse resp, String queryId) throws IOException {
     String responseBody = "";
 
-    if (cachingManager.get(queryId + CachingDatabaseManager.COMPLETION_SUFFIX).equals("true")) {
+    if (cachingManager.get(CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId
+        + CachingDatabaseManager.COMPLETION_SUFFIX).equals("true")) {
       // Complete response has been recieved
-      String correctedUrl = BaseHandler.removeClientFromUri(req.getRequestURL().toString());
+      String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString());
+      String cacheKey = getIncrementalCacheKey(correctedUri);
       
-      responseBody = cachingManager.get(correctedUrl
-          + CachingDatabaseManager.CACHED_PIECE_BODY_SUFFIX);
+      responseBody = cachingManager.getFromHash(cacheKey, CachingDatabaseManager.BODY_FIELD);
     } else {
       // Query is still being processed
-      responseBody = cachingManager.get(queryId 
-        + CachingDatabaseManager.INITIAL_RESPONSE_BODY);
+      responseBody = cachingManager.getFromHash(CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId
+        + CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX, CachingDatabaseManager.BODY_FIELD);
     }
 
     if (Strings.isNullOrEmpty(responseBody)) {
@@ -176,5 +186,17 @@ public class QueryCachingManager {
     response.setDateHeader(BaseHandler.DATE_HEADER, System.currentTimeMillis());
 
     response.getOutputStream().write(bytes);
+  }
+
+  /**
+   * Returns a key to use in the caching database that corresponds to
+   * the given nextUri.
+   * @param nextUri Next uri of request
+   * @return Key to use
+   */
+  private String getIncrementalCacheKey(String nextUri) {
+    URI uri = URI.create(nextUri);
+    return CachingDatabaseManager.QUERY_CACHE_PREFIX.replace("/", "")
+        + uri.getPath() + CachingDatabaseManager.CACHED_RESONSE_SUFFIX;
   }
 }

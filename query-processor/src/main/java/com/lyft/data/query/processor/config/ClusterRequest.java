@@ -8,7 +8,6 @@ import lombok.Data;
 public class ClusterRequest {
   private String queryId;
   private String nextUri;
-  private String originalNextUri;
   private String host;
   private String backendAddress;
 }

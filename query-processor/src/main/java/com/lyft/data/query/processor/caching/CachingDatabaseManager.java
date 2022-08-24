@@ -6,16 +6,18 @@ import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
  * This class serves to manage a connection with a caching database.
  */
 public class CachingDatabaseManager {
-  public static final String CACHED_PIECE_HEADER_SUFFIX = "-Cached-Piece-Headers";
-  public static final String CACHED_PIECE_BODY_SUFFIX = "-Cached-Piece-Body";
-  public static final String COMPLETION_SUFFIX = "-Processing-Completed";
+  public static final String ACTIVE_QUERIES_PREFIX = "active-queries/";
+  public static final String QUERY_CACHE_PREFIX = "query-cache/";
 
-  public static final String INITIAL_REQUEST_HEADERS = "-Initial-Request-Headers";
-  public static final String INITIAL_REQUEST_BODY = "-Initial-Request-Body";
-  public static final String INITIAL_RESPONSE_HEADER = "-Initial-Response-Headers";
-  public static final String INITIAL_RESPONSE_BODY = "-Initial-Response-Body";
+  public static final String INITIAL_REQUEST_SUFFIX = ":initial-request";
+  public static final String INITIAL_RESPONSE_SUFFIX = ":initial-response";
+  public static final String CACHED_RESONSE_SUFFIX = ":cache";
+  public static final String COMPLETION_SUFFIX = ":completed";
 
-  public static final String HUNG_QUERIES_KEY = "Active-Queries/Hung-Queries";
+  public static final String HEADER_FIELD = "header";
+  public static final String BODY_FIELD = "body";
+
+  public static final String HUNG_QUERIES_KEY = ACTIVE_QUERIES_PREFIX + "hung-queries";
 
   private QueryProcessorConfiguration configuration;
   private CachingDatabaseConnection client;
@@ -77,6 +79,37 @@ public class CachingDatabaseManager {
     try {
       client.open();
       return client.addToList(key, value);
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Adds a key-value mapping to a hash.
+   * @param key Key to use
+   * @param hashKey Key in hash
+   * @param hashValue Value in hash
+   * @return Return value of hash addition operation
+   */
+  public boolean addToHash(String key, String hashKey, String hashValue) {
+    try {
+      client.open();
+      return client.addToHash(key, hashKey, hashValue);
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Gets a value from a hash.
+   * @param key Key to use
+   * @param hashKey Hash key to use
+   * @return Associated value with hash key
+   */
+  public String getFromHash(String key, String hashKey) {
+    try {
+      client.open();
+      return client.getFromHash(key, hashKey);
     } finally {
       client.close();
     }

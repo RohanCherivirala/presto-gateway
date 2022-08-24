@@ -20,7 +20,7 @@ public class RedisConnection extends CachingDatabaseConnection {
   public static final String VALIDATE_RESPONSE = "validated_";
 
   // In seconds
-  public static final int DEFAULT_EXPIRATION_TIME = 600;
+  public static final int DEFAULT_EXPIRATION_TIME_SECONDS = 600;
 
   public static final String OK = "OK";
 
@@ -89,13 +89,14 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public String set(String key, String value) {
-    return set(key, value, DEFAULT_EXPIRATION_TIME);
+    return set(key, value, DEFAULT_EXPIRATION_TIME_SECONDS);
   }
 
   /**
    * Sets a key associated a certain value with a set expiration time.
    * @param key Redis key
    * @param value Value associated with Redis key
+   * @param expTime Expiration time (In seconds)
    * @return Set response
    */
   public String set(String key, String value, int expTime) {
@@ -107,6 +108,30 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
+   * Adds a key-value mapping to a redis hash.
+   * @param key Redis key
+   * @param hashKey Key to use in hash
+   * @param hashValue Value to use in redis hash
+   * @return Boolean response of hset function
+   */
+  public boolean addToHash(String key, String hashKey, String hashValue) {
+    Mono<Boolean> response = reactive.hset(key, hashKey, hashValue);
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
+    return response.block();
+  }
+
+  /**
+   * Gets a value from a redis hash.
+   * @param key Key of hash
+   * @param hashKey Key to use in hash
+   * @return Value associated with key in hash
+   */
+  public String getFromHash(String key, String hashKey) {
+    Mono<String> response = reactive.hget(key, hashKey);
+    return response.block();
+  }
+
+  /**
    * Adds an element to a redis list.
    * @param key Redis key
    * @param value Value to add to list
@@ -114,6 +139,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public long addToList(String key, String value) {
     Mono<Long> response = reactive.lpush(key, value);
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response.block().longValue();
   }
 

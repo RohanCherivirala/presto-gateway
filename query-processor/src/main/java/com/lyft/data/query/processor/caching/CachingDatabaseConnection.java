@@ -11,6 +11,10 @@ public abstract class CachingDatabaseConnection {
 
   public abstract long addToList(String key, String value);
 
+  public abstract boolean addToHash(String key, String hashKey, String hashValue);
+
+  public abstract String getFromHash(String key, String hashKey);
+
   public abstract boolean validateConnection();
 
   public abstract void shutdown();

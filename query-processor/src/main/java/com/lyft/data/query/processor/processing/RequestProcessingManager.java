@@ -171,8 +171,7 @@ public class RequestProcessingManager {
   private void submitNextGetRequest(String queryId, String nextUri, 
       String host, String backendAddress) {
     ClusterRequest newRequest = new ClusterRequest(queryId, 
-        rewriteNextUri(nextUri, backendAddress), 
-        nextUri, host, backendAddress);
+        rewriteNextUri(nextUri, backendAddress), host, backendAddress);
 
     queue.submit(() -> {
       try {

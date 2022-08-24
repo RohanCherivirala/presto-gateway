@@ -15,13 +15,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * This class serves as a module of the query-processor that provides the thread
  * pool executor.
  */
-@Slf4j
 public class QueryProcessorProviderModule 
     extends AppModule<QueryProcessorConfiguration, Environment> {
   public static final int QUEUE_SIZE = 10;
