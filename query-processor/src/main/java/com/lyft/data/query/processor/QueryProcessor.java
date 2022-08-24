@@ -6,6 +6,8 @@ import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Dsl;
 
 public class QueryProcessor {
+  public static int THREAD_POOL_SHUTDOWN_TIME = 40;
+
   private static volatile boolean terminated = false;
   private static ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
   private static AsyncHttpClient httpClient = Dsl.asyncHttpClient();
@@ -35,9 +37,9 @@ public class QueryProcessor {
   }
 
   /**
-   * Shutds down query processor application.
+   * Indicates that a shutdown is occurring.
    */
-  public static void shutdown() {
+  public static void indicateShutdown() {
     terminated = true;
   }
 }

@@ -15,6 +15,8 @@ public class CachingDatabaseManager {
   public static final String INITIAL_RESPONSE_HEADER = "-Initial-Response-Headers";
   public static final String INITIAL_RESPONSE_BODY = "-Initial-Response-Body";
 
+  public static final String HUNG_QUERIES_KEY = "Active-Queries/Hung-Queries";
+
   private QueryProcessorConfiguration configuration;
   private CachingDatabaseConnection client;
 
@@ -54,12 +56,27 @@ public class CachingDatabaseManager {
    * Sets a key to a specific value.
    * @param key Key to set
    * @param value Value to set key to
-   * @return
+   * @return Set return value
    */
   public String set(String key, String value) {
     try {
       client.open();
       return client.set(key, value);
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Adds a key to a list.
+   * @param key Redis key
+   * @param value Value to add to list
+   * @return List addition return value
+   */
+  public long addToList(String key, String value) {
+    try {
+      client.open();
+      return client.addToList(key, value);
     } finally {
       client.close();
     }

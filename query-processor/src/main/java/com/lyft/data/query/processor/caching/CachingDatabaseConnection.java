@@ -9,6 +9,8 @@ public abstract class CachingDatabaseConnection {
 
   public abstract String set(String key, String value);
 
+  public abstract long addToList(String key, String value);
+
   public abstract boolean validateConnection();
 
   public abstract void shutdown();

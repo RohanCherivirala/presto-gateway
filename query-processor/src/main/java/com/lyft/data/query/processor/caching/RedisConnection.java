@@ -7,7 +7,7 @@ import io.lettuce.core.RedisConnectionException;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.reactive.RedisStringReactiveCommands;
+import io.lettuce.core.api.reactive.RedisReactiveCommands;
 
 import java.util.Random;
 
@@ -26,7 +26,7 @@ public class RedisConnection extends CachingDatabaseConnection {
 
   private static RedisClient client;
   private StatefulRedisConnection<String, String> statefulConnection;
-  private RedisStringReactiveCommands<String, String> reactive;
+  private RedisReactiveCommands<String, String> reactive;
 
   public RedisConnection(QueryProcessorConfiguration configuration) {
     try {
@@ -104,6 +104,17 @@ public class RedisConnection extends CachingDatabaseConnection {
 
     Mono<String> response = reactive.set(key, value, setArgs);
     return response.block();
+  }
+
+  /**
+   * Adds an element to a redis list.
+   * @param key Redis key
+   * @param value Value to add to list
+   * @return Response from redis
+   */
+  public long addToList(String key, String value) {
+    Mono<Long> response = reactive.lpush(key, value);
+    return response.block().longValue();
   }
 
   /**
