@@ -7,6 +7,7 @@ import org.asynchttpclient.Dsl;
 
 public class QueryProcessor {
   public static int THREAD_POOL_SHUTDOWN_TIME = 40;
+  public static int MAX_RETRIES = 2;
 
   private static volatile boolean terminated = false;
   private static ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();

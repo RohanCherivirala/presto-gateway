@@ -1,7 +1,6 @@
 package com.lyft.data.query.processor.caching;
 
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
-
 /**
  * This class serves to manage a connection with a caching database.
  */
@@ -91,10 +90,10 @@ public class CachingDatabaseManager {
    * @param hashValue Value in hash
    * @return Return value of hash addition operation
    */
-  public boolean addToHash(String key, String hashKey, String hashValue) {
+  public boolean setInHash(String key, String hashKey, String hashValue) {
     try {
       client.open();
-      return client.addToHash(key, hashKey, hashValue);
+      return client.setInHash(key, hashKey, hashValue);
     } finally {
       client.close();
     }

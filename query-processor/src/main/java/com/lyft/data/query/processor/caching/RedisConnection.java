@@ -114,7 +114,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    * @param hashValue Value to use in redis hash
    * @return Boolean response of hset function
    */
-  public boolean addToHash(String key, String hashKey, String hashValue) {
+  public boolean setInHash(String key, String hashKey, String hashValue) {
     Mono<Boolean> response = reactive.hset(key, hashKey, hashValue);
     reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response.block();

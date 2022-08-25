@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 import com.lyft.data.baseapp.BaseHandler;
+import com.lyft.data.query.processor.QueryProcessor;
 import com.lyft.data.query.processor.config.ClusterRequest;
 
 import java.io.IOException;
@@ -28,7 +29,11 @@ import org.asynchttpclient.Response;
 
 @Slf4j
 public class QueryCachingManager {
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  
+  public static final String COMPLETED = "completed";
+  public static final String INITIAL_QUERY_ID = "initialQueryId";
+  public static final String RETRIES = "retries";
   
   private CachingDatabaseManager cachingManager;
 
@@ -61,7 +66,7 @@ public class QueryCachingManager {
       cacheHeader(headerMap, cacheKey, "");
 
       // Cache response body
-      cachingManager.addToHash(cacheKey, CachingDatabaseManager.BODY_FIELD,
+      cachingManager.setInHash(cacheKey, CachingDatabaseManager.BODY_FIELD,
           responseString);
     } catch (Exception e) {
       log.error("Error caching data for queryId [{}]", request.getQueryId(), e);
@@ -70,7 +75,6 @@ public class QueryCachingManager {
 
   /**
    * Cache the initial response receieved from the presto cluster.
-   * 
    * @param request  Initial http servlet request
    * @param response Response to initial servlet request
    */
@@ -78,8 +82,7 @@ public class QueryCachingManager {
       HttpServletResponse response, String queryId, String requestBody, String responseBody) {
     try {
       // Indicate that the query has been started
-      cachingManager.set(CachingDatabaseManager.QUERY_CACHE_PREFIX
-          + queryId + CachingDatabaseManager.COMPLETION_SUFFIX, "false");
+      cacheInActiveQueries(queryId, queryId, 0);
 
       // Cache request headers
       Enumeration<String> requestHeaders = request.getHeaderNames();
@@ -94,7 +97,7 @@ public class QueryCachingManager {
           CachingDatabaseManager.INITIAL_REQUEST_SUFFIX);
 
       // Cache request body
-      cachingManager.addToHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
+      cachingManager.setInHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
           + queryId + CachingDatabaseManager.INITIAL_REQUEST_SUFFIX, 
           CachingDatabaseManager.BODY_FIELD, requestBody);
 
@@ -113,7 +116,7 @@ public class QueryCachingManager {
           CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX);
 
       // Cache response body
-      cachingManager.addToHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
+      cachingManager.setInHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
           + queryId + CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX, 
           CachingDatabaseManager.BODY_FIELD, responseBody);
     } catch (Exception e) {
@@ -123,7 +126,6 @@ public class QueryCachingManager {
 
   /**
    * Cache a map containing header keys and values to a specific key.
-   * 
    * @param headers Map of headrs
    * @param prefix  Prefix of key
    * @param suffix  Suffix of key
@@ -131,7 +133,20 @@ public class QueryCachingManager {
   private void cacheHeader(Map<String, String> headers, String prefix, String suffix)
       throws JsonProcessingException {
     String headerString = OBJECT_MAPPER.writeValueAsString(headers);
-    cachingManager.addToHash(prefix + suffix, CachingDatabaseManager.HEADER_FIELD, headerString);
+    cachingManager.setInHash(prefix + suffix, CachingDatabaseManager.HEADER_FIELD, headerString);
+  }
+
+  /**
+   * Caches the query information in the active queries table.
+   * @param queryId QueryId of request
+   * @param active 
+   * @param retries
+   */
+  private void cacheInActiveQueries(String queryId, String initialQueryId, int retries) {
+    String cacheKey = CachingDatabaseManager.ACTIVE_QUERIES_PREFIX + queryId;
+    cachingManager.setInHash(cacheKey, COMPLETED, Boolean.toString(false));
+    cachingManager.setInHash(cacheKey, INITIAL_QUERY_ID, initialQueryId);
+    cachingManager.setInHash(cacheKey, RETRIES, Integer.toString(retries));
   }
 
   /**
@@ -139,8 +154,21 @@ public class QueryCachingManager {
    * @param queryId The queryId of the request
    */
   public void cacheRequestCompleted(String queryId) {
-    cachingManager.set(CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId
-        + CachingDatabaseManager.COMPLETION_SUFFIX, "true");
+    cachingManager.setInHash(CachingDatabaseManager.ACTIVE_QUERIES_PREFIX + queryId,
+        COMPLETED, Boolean.toString(true));
+  }
+
+  /**
+   * Return if the corresponding queryId can be retried.
+   * @param queryId Query Id of query to possibly retry
+   * @return If the query can be retried
+   */
+  public boolean canRetry(String queryId) {
+    int retriesCompleted = Integer.valueOf(cachingManager.getFromHash(
+        CachingDatabaseManager.ACTIVE_QUERIES_PREFIX + queryId, 
+        RETRIES));
+
+    return retriesCompleted < QueryProcessor.MAX_RETRIES;
   }
 
   /**
@@ -152,9 +180,10 @@ public class QueryCachingManager {
   public void fillResponseForClient(HttpServletRequest req,
       HttpServletResponse resp, String queryId) throws IOException {
     String responseBody = "";
+    String activeQueriesKey = CachingDatabaseManager.ACTIVE_QUERIES_PREFIX + queryId;
 
-    if (cachingManager.get(CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId
-        + CachingDatabaseManager.COMPLETION_SUFFIX).equals("true")) {
+    if (cachingManager.getFromHash(activeQueriesKey,
+        COMPLETED).equals(Boolean.toString(true))) {
       // Complete response has been recieved
       String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString());
       String cacheKey = getIncrementalCacheKey(correctedUri);
@@ -162,8 +191,10 @@ public class QueryCachingManager {
       responseBody = cachingManager.getFromHash(cacheKey, CachingDatabaseManager.BODY_FIELD);
     } else {
       // Query is still being processed
-      responseBody = cachingManager.getFromHash(CachingDatabaseManager.QUERY_CACHE_PREFIX + queryId
-        + CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX, CachingDatabaseManager.BODY_FIELD);
+      String initialQueryId = cachingManager.getFromHash(activeQueriesKey, INITIAL_QUERY_ID);
+      responseBody = cachingManager.getFromHash(CachingDatabaseManager.QUERY_CACHE_PREFIX 
+        + initialQueryId + CachingDatabaseManager.INITIAL_RESPONSE_SUFFIX,
+        CachingDatabaseManager.BODY_FIELD);
     }
 
     if (Strings.isNullOrEmpty(responseBody)) {

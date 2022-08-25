@@ -26,14 +26,22 @@ import org.asynchttpclient.Response;
 import org.asynchttpclient.util.HttpConstants;
 import org.eclipse.jetty.http.HttpHeader;
 
+/**
+ * This class serves to process queries and provides methods to send requests
+ * to clusters and parse the response.
+ */
 @Slf4j
 public class RequestProcessingManager {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  public static final String NEXT_URI_PATH = "/nextUri";
+  public static final String ERROR_PATH = "/error";
+  public static final String ERROR_CODE_PATH = "/error/errorCode";
+  public static final String ERROR_NAME_PATH = "/error/errorName";
+  public static final String ERROR_TYPE_PATH = "/error/errorType";
+
   private final ThreadPoolExecutor queue;
   private final QueryCachingManager queryCachingManager;
-
-  public static String VIA_HOST = "request_processor";
   
   public RequestProcessingManager(ThreadPoolExecutor queue,
       QueryCachingManager queryCachingManager) {
@@ -79,6 +87,7 @@ public class RequestProcessingManager {
 
   /**
    * Processes a response received from a cluster.
+   * @param request Cluster request that is sent
    * @param response Response recieved
    */
   public void processResponse(ClusterRequest request, Response response) {
@@ -106,25 +115,32 @@ public class RequestProcessingManager {
       JsonNode root = OBJECT_MAPPER.readTree(output);
 
       // Error found
-      if (!root.at("/error").isMissingNode()) {
-        int errorCode = root.at("/error/errorCode").asInt();
-        String errorName = root.at("/error/errorName").asText();
-        String errorType = root.at("/error/errorType").asText();
+      if (!root.at(ERROR_PATH).isMissingNode()) {
+        int errorCode = root.at(ERROR_CODE_PATH).asInt();
+        String errorName = root.at(ERROR_NAME_PATH).asText();
+        String errorType = root.at(ERROR_TYPE_PATH).asText();
 
         log.debug("\n\nError Details:");
         log.debug(String.format("Error Code: %s ErrorName: %s Error Type: %s\n\n", 
                           errorCode, errorName, errorType));
 
-        requestCompleted(request.getQueryId());
+        // Attempt to retury query if possible
+        if (isRetryNeccessary(errorCode, errorName, errorType)
+            && queryCachingManager.canRetry(request.getQueryId())) {
+          retryRequest(request.getQueryId());
+        } else {
+          // Query will not be retried
+          requestCompleted(request.getQueryId(), false);
+        }
       } else {
-        if (root.at("/nextUri").isMissingNode()) {
+        if (root.at(NEXT_URI_PATH).isMissingNode()) {
           // No nextUri field
-          requestCompleted(request.getQueryId());
+          requestCompleted(request.getQueryId(), true);
         } else {
           // Send next get request if required
           submitNextGetRequest(
               request.getQueryId(),
-              root.at("/nextUri").asText(),
+              root.at(NEXT_URI_PATH).asText(),
               request.getHost(),
               request.getBackendAddress());
         }
@@ -134,6 +150,15 @@ public class RequestProcessingManager {
     }
   }
 
+  /**
+   * Process a new request that is recieved.
+   * @param request Http request
+   * @param response Http response
+   * @param backendAddress Backend address of cluster
+   * @param queryId QueryId
+   * @param requestBody Body of request
+   * @param responseBody Body of response
+   */
   public void processNewRequest(HttpServletRequest request,
       HttpServletResponse response, String backendAddress, 
       String queryId, String requestBody, String responseBody) {
@@ -155,11 +180,35 @@ public class RequestProcessingManager {
   }
 
   /**
+   * This function takes in a queryId and attempts to retry it.
+   * @param queryId QueryId of request to retry
+   */
+  public void retryRequest(String queryId) {
+
+  }
+
+  /**
+   * Returns whether or not we should retry the query dependant on the error.
+   * Refrence the page here:
+   * https://github.com/trinodb/trino/blob/master/core/trino-spi/src/main/java/io/trino/spi/StandardErrorCode.java
+   * for more info on the different error types.
+   * @param errorCode Code of error
+   * @param errorName Name of error
+   * @param errorType Type of error 
+   * (Possible types are External, Insufficient Resources, Internal Error, User Error)
+   * @return If the query should be retried
+   */
+  public boolean isRetryNeccessary(int errorCode, String errorName, String errorType) {
+    return false;
+  }
+
+  /**
    * This function is called when a request is completed.
    * @param queryId The query id of the completed request.
    */
-  private void requestCompleted(String queryId) {
-    log.debug("Query [{}] finished processing", queryId);
+  private void requestCompleted(String queryId, boolean successful) {
+    log.debug("Query [{}] finished processing {}", queryId,
+        successful ? "succesfully" : "with an error");
     queryCachingManager.cacheRequestCompleted(queryId);
   }
 
