@@ -29,7 +29,7 @@ import org.asynchttpclient.Response;
 
 @Slf4j
 public class QueryCachingManager {
-  private final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
   
   public static final String COMPLETED = "completed";
   public static final String INITIAL_QUERY_ID = "initialQueryId";
@@ -132,7 +132,7 @@ public class QueryCachingManager {
    */
   private void cacheHeader(Map<String, String> headers, String prefix, String suffix)
       throws JsonProcessingException {
-    String headerString = OBJECT_MAPPER.writeValueAsString(headers);
+    String headerString = objectMapper.writeValueAsString(headers);
     cachingManager.setInHash(prefix + suffix, CachingDatabaseManager.HEADER_FIELD, headerString);
   }
 

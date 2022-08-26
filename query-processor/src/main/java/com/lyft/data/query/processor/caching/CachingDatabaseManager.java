@@ -1,6 +1,7 @@
 package com.lyft.data.query.processor.caching;
 
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
+
 /**
  * This class serves to manage a connection with a caching database.
  */

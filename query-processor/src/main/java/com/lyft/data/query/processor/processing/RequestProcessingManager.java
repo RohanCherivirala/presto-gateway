@@ -189,13 +189,10 @@ public class RequestProcessingManager {
 
   /**
    * Returns whether or not we should retry the query dependant on the error.
-   * Refrence the page here:
-   * https://github.com/trinodb/trino/blob/master/core/trino-spi/src/main/java/io/trino/spi/StandardErrorCode.java
-   * for more info on the different error types.
+   * Possible error types are external, insufficient resources, internal, or user.
    * @param errorCode Code of error
    * @param errorName Name of error
    * @param errorType Type of error 
-   * (Possible types are External, Insufficient Resources, Internal Error, User Error)
    * @return If the query should be retried
    */
   public boolean isRetryNeccessary(int errorCode, String errorName, String errorType) {
