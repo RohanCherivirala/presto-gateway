@@ -67,6 +67,7 @@ public class TestPrestoQueueLengthRoutingTable {
                                int queueLengthDistributiveFactor) {
     String backend = null;
     routingGroupsManager.addRoutingGroup(new RoutingGroupConfiguration(groupName));
+    routingTable.routingGroups.put(groupName, true);
 
     for (int i = 0; i < numBackends; i++) {
       backend = groupName + i;
@@ -76,6 +77,7 @@ public class TestPrestoQueueLengthRoutingTable {
       proxyBackend.setName(backend);
       proxyBackend.setProxyTo(backend + ".presto.lyft.com");
       backendManager.addBackend(proxyBackend);
+      routingTable.backendProxyMap.put(backend, backend + ".presto.lyft.com");
     }
   }
 
@@ -318,7 +320,7 @@ public class TestPrestoQueueLengthRoutingTable {
         totalDistribution.putAll(routingDistribution);
       } else {
         for (String key : routingDistribution.keySet()) {
-          sum = totalDistribution.get(key) + routingDistribution.get(key);
+          sum = totalDistribution.getOrDefault(key, 0) + routingDistribution.getOrDefault(key, 0);
           totalDistribution.put(key, sum);
         }
       }
