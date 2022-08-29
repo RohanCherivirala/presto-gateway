@@ -8,6 +8,7 @@ import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
+import com.lyft.data.gateway.ha.router.RoutingManager;
 
 import io.dropwizard.lifecycle.Managed;
 import java.io.BufferedReader;
@@ -42,6 +43,7 @@ public class ActiveClusterMonitor implements Managed {
   @Inject private List<PrestoClusterStatsObserver> clusterStatsObservers;
   @Inject private GatewayBackendManager gatewayBackendManager;
   @Inject private RoutingGroupsManager routingGroupsManager;
+  @Inject private RoutingManager routingManager;
 
   private volatile boolean monitorActive = true;
 
@@ -60,6 +62,10 @@ public class ActiveClusterMonitor implements Managed {
 
               List<RoutingGroupConfiguration> routingGroups = routingGroupsManager
                   .getAllRoutingGroups(clusters);
+
+              // Update saved information about routing groups and clusters
+              routingManager.updateRoutingGroups(routingGroups);
+              routingManager.updateBackendProxyMap(clusters);
 
               /*
                * Service all active cluster in unpaused routing groups
