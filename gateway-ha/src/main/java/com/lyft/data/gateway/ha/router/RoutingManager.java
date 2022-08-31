@@ -70,7 +70,7 @@ public abstract class RoutingManager {
    * Updates the internal routing groups.
    * @param groups Routing groups
    */
-  public synchronized void updateRoutingGroups(List<RoutingGroupConfiguration> groups) {
+  public void updateRoutingGroups(List<RoutingGroupConfiguration> groups) {
     synchronized (lockObject) {
       routingGroups.clear();
       for (RoutingGroupConfiguration group : groups) {
