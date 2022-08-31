@@ -1,5 +1,6 @@
 package com.lyft.data.server.filter;
 
+import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 
@@ -35,8 +36,8 @@ public class RequestFilter implements Filter {
     HttpServletRequest req = (HttpServletRequest) request;
     String reqUri = req.getRequestURI();
 
-    if (req.getHeader(ServerHandler.CLIENT_SERVER_REDIRECT) == null 
-          && !reqUri.startsWith(ServerHandler.CLIENT_SERVER_PREFIX)
+    if (req.getHeader(BaseHandler.CLIENT_SERVER_REDIRECT) == null 
+          && !reqUri.startsWith(BaseHandler.CLIENT_SERVER_PREFIX)
           && ServerHandler.isStatementPath(req.getRequestURI())) {
       // Forward to client server initially
       reqUri = ServerHandler.CLIENT_SERVER_PREFIX + reqUri;

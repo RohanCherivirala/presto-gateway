@@ -132,6 +132,18 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
+   * Increments a value stored within a redis hash/
+   * @param key Key of hash
+   * @param hashKey Key to use in hash
+   * @param amount Amount to increment by
+   * @return New value of field
+   */
+  public long incrementInHash(String key, String hashKey, int amount) {
+    Mono<Long> response = reactive.hincrby(key, hashKey, amount);
+    return response.block().longValue();
+  }
+
+  /**
    * Adds an element to a redis list.
    * @param key Redis key
    * @param value Value to add to list

@@ -4,7 +4,6 @@ import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
-import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
@@ -15,7 +14,6 @@ import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
@@ -28,6 +26,8 @@ import org.eclipse.jetty.util.Callback;
 
 @Slf4j
 public class QueryIdCachingServerHandler extends ServerHandler {
+  public final String ID_PATH = "/id";
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final RoutingManager routingManager;
@@ -70,11 +70,13 @@ public class QueryIdCachingServerHandler extends ServerHandler {
       } else {
         String routingGroup = Optional.ofNullable(request.getHeader(ROUTING_GROUP_HEADER))
             .orElse(request.getHeader(ALTERNATE_ROUTING_GROUP_HEADER));
+            
         // Fall back on client tags for routing
         if (Strings.isNullOrEmpty(routingGroup)) {
           routingGroup = Optional.ofNullable(request.getHeader(CLIENT_TAGS_HEADER))
             .orElse(request.getHeader(ALTERNATE_CLIENT_TAGS_HEADER));
         }
+
         if (!Strings.isNullOrEmpty(routingGroup)) {
           // This falls back on adhoc backend if there are no cluster found for the routing group.
           backendAddress = routingManager.provideBackendForRoutingGroup(routingGroup);
@@ -169,7 +171,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
 
         if (response.getStatus() == HttpStatus.OK_200) {
           JsonNode root = OBJECT_MAPPER.readTree(output);
-          queryDetail.setQueryId(root.at("/id").asText());
+          queryDetail.setQueryId(root.at(ID_PATH).asText());
 
           if (!Strings.isNullOrEmpty(queryDetail.getQueryId())) {
             routingManager.setBackendForQueryId(

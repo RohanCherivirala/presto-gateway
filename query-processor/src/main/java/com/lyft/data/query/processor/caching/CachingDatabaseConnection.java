@@ -15,6 +15,8 @@ public abstract class CachingDatabaseConnection {
 
   public abstract String getFromHash(String key, String hashKey);
 
+  public abstract long incrementInHash(String key, String hashKey, int amount);
+
   public abstract boolean validateConnection();
 
   public abstract void shutdown();

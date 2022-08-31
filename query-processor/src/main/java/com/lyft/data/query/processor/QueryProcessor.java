@@ -2,16 +2,12 @@ package com.lyft.data.query.processor;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Dsl;
-
 public class QueryProcessor {
   public static int THREAD_POOL_SHUTDOWN_TIME = 40;
   public static int MAX_RETRIES = 2;
 
   private static volatile boolean terminated = false;
   private static ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
-  private static AsyncHttpClient httpClient = Dsl.asyncHttpClient();
 
   /**
    * Returns if the execution has finished terminating.
@@ -27,14 +23,6 @@ public class QueryProcessor {
    */
   public static ConcurrentLinkedQueue<String> getQueue() {
     return queue;
-  }
-
-  /**
-   * Returns the async http client.
-   * @return Async http client
-   */
-  public static AsyncHttpClient getHttpClient() {
-    return httpClient;
   }
 
   /**

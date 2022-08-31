@@ -15,6 +15,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.Dsl;
+
 /**
  * This class serves as a module of the query-processor that provides the thread
  * pool executor.
@@ -29,12 +32,18 @@ public class QueryProcessorProviderModule
   private final QueryCachingManager queryCachingManager;
   private final RequestProcessingManager requestProcessingManager;
 
+  private final AsyncHttpClient httpClient;
+
   public static CachingDatabaseManager staticCachingManager;
   public static RequestProcessingManager staticRequestManager;
   public static QueryCachingManager staticQueryCachingManager;
 
   public QueryProcessorProviderModule(QueryProcessorConfiguration config, Environment env) {
     super(config, env);
+
+    // Set up http client
+    httpClient = Dsl.asyncHttpClient();
+
     // Set up thread pool
     queue = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
     queueService = MoreExecutors.getExitingExecutorService(queue);
@@ -42,11 +51,18 @@ public class QueryProcessorProviderModule
     // Set up caching connection
     cachingManager = new CachingDatabaseManager(config);
     queryCachingManager = new QueryCachingManager(cachingManager);
-    requestProcessingManager = new RequestProcessingManager(queue, queryCachingManager);
+    requestProcessingManager = new RequestProcessingManager(
+        queue, queryCachingManager, httpClient);
 
     QueryProcessorProviderModule.staticCachingManager = cachingManager;
     QueryProcessorProviderModule.staticRequestManager = requestProcessingManager;
     QueryProcessorProviderModule.staticQueryCachingManager = queryCachingManager;
+  }
+
+  @Provides
+  @Singleton
+  public AsyncHttpClient provideHttpClient() {
+    return httpClient;
   }
 
   /**

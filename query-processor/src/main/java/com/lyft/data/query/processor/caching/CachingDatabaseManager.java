@@ -70,21 +70,6 @@ public class CachingDatabaseManager {
   }
 
   /**
-   * Adds a key to a list.
-   * @param key Redis key
-   * @param value Value to add to list
-   * @return List addition return value
-   */
-  public long addToList(String key, String value) {
-    try {
-      client.open();
-      return client.addToList(key, value);
-    } finally {
-      client.close();
-    }
-  }
-
-  /**
    * Adds a key-value mapping to a hash.
    * @param key Key to use
    * @param hashKey Key in hash
@@ -110,6 +95,30 @@ public class CachingDatabaseManager {
     try {
       client.open();
       return client.getFromHash(key, hashKey);
+    } finally {
+      client.close();
+    }
+  }
+
+  public long incrementInHash(String key, String hashKey, int amount) {
+    try {
+      client.open();
+      return client.incrementInHash(key, hashKey, amount);
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Adds a key to a list.
+   * @param key Redis key
+   * @param value Value to add to list
+   * @return List addition return value
+   */
+  public long addToList(String key, String value) {
+    try {
+      client.open();
+      return client.addToList(key, value);
     } finally {
       client.close();
     }

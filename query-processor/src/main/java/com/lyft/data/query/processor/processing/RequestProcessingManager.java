@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.http.HttpHeaders;
-
+import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.RequestBuilder;
@@ -42,11 +42,14 @@ public class RequestProcessingManager {
 
   private final ThreadPoolExecutor queue;
   private final QueryCachingManager queryCachingManager;
+  private final AsyncHttpClient httpClient;
   
   public RequestProcessingManager(ThreadPoolExecutor queue,
-      QueryCachingManager queryCachingManager) {
+      QueryCachingManager queryCachingManager,
+      AsyncHttpClient httpClient) {
     this.queue = queue;
     this.queryCachingManager = queryCachingManager;
+    this.httpClient = httpClient;
   }
 
   /**
@@ -68,13 +71,12 @@ public class RequestProcessingManager {
         .setUrl(request.getNextUri())
         .addHeader(HttpHeader.HOST.asString(), request.getHost())
         .build();
-
+    
     // Add request to queue if process terminates
     QueryProcessor.getQueue().add(request.getQueryId());
 
     // Send request
-    ListenableFuture<Response> future = QueryProcessor.getHttpClient()
-        .executeRequest(getRequest);
+    ListenableFuture<Response> future = httpClient.executeRequest(getRequest);
     
     future.addListener(() -> {
       try {
@@ -120,9 +122,9 @@ public class RequestProcessingManager {
         String errorName = root.at(ERROR_NAME_PATH).asText();
         String errorType = root.at(ERROR_TYPE_PATH).asText();
 
-        log.debug("\n\nError Details:");
-        log.debug(String.format("Error Code: %s ErrorName: %s Error Type: %s\n\n", 
-                          errorCode, errorName, errorType));
+        log.debug("Error Details:");
+        log.debug("Error Code: {}, Error Name: {}, Error Type: {}",
+            errorCode, errorName, errorType);
 
         // Attempt to retury query if possible
         if (isRetryNeccessary(errorCode, errorName, errorType)
@@ -180,11 +182,33 @@ public class RequestProcessingManager {
   }
 
   /**
+   * This function retries a query without having its previous backend known.
+   * This function will mainly be used when dealing with retrying droopped
+   * requests.
+   * @param queryId
+   */
+  public void retryRequest(String queryId) {
+    retryRequest(queryId, null);
+  }
+
+  /**
    * This function takes in a queryId and attempts to retry it.
    * @param queryId QueryId of request to retry
    */
-  public void retryRequest(String queryId) {
+  public void retryRequest(String queryId, String previousAddress) {
+    if (Strings.isNullOrEmpty(previousAddress)) {
+      // Increment retry count if the previous address is present
+      queryCachingManager.cacheRetryRequest(queryId);
+    }
 
+    // Build request to send to proxyserver
+    RequestBuilder requestBuilder = new RequestBuilder(HttpConstants.Methods.POST)
+        .setUrl(BaseHandler.RETRY_PATH)
+        .addHeader(BaseHandler.RETRY_EXCLUSION, previousAddress);
+
+    queryCachingManager.fillRetryRequest(queryId, requestBuilder);
+
+    httpClient.executeRequest(requestBuilder.build());
   }
 
   /**
@@ -217,7 +241,7 @@ public class RequestProcessingManager {
   private void submitNextGetRequest(String queryId, String nextUri, 
       String host, String backendAddress) {
     ClusterRequest newRequest = new ClusterRequest(queryId, 
-        rewriteNextUri(nextUri, backendAddress), host, backendAddress);
+        rewriteNextUriToBackend(nextUri, backendAddress), host, backendAddress);
 
     queue.submit(() -> {
       try {
@@ -235,7 +259,7 @@ public class RequestProcessingManager {
    * @param backendAddress Backend address of cluster
    * @return New nextUri field
    */
-  private String rewriteNextUri(String nextUri, String backendAddress) {
+  private String rewriteNextUriToBackend(String nextUri, String backendAddress) {
     URI uri = URI.create(nextUri);
     String newNextUri = backendAddress
         + uri.getPath()

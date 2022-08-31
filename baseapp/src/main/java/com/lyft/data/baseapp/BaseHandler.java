@@ -32,7 +32,13 @@ public abstract class BaseHandler {
   public static final String ALTERNATE_ROUTING_GROUP_HEADER = "X-Presto-Routing-Group";
   public static final String CLIENT_TAGS_HEADER = "X-Trino-Client-Tags";
   public static final String ALTERNATE_CLIENT_TAGS_HEADER = "X-Presto-Client-Tags";
-  public static final String CLIENT_SERVER_REDIRECT = "Client-Server-Redirected";
+
+  public static final String CLIENT_SERVER_REDIRECT = "Presto-Gateway-Client-Server-Redirected";
+  public static final String RETRY_EXCLUSION = "Presto-Gateway-Retry-Backend-To-Exclude";
+  public static final String RETRY_PATH = "127.0.0.1" + V1_STATEMENT_PATH;
+
+  public static final String PRESTO = "Presto";
+  public static final String TRINO = "Trino";
 
   public static final String ADHOC_ROUTING_GROUP = "adhoc";
   public static final int QUERY_TEXT_LENGTH_FOR_HISTORY = 200;
