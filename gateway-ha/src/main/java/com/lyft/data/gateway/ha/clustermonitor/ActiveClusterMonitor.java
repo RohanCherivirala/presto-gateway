@@ -8,13 +8,9 @@ import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
 import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
 import com.lyft.data.gateway.ha.router.GatewayBackendManager;
 import com.lyft.data.gateway.ha.router.RoutingGroupsManager;
+import com.lyft.data.gateway.ha.router.RoutingManager;
 
 import io.dropwizard.lifecycle.Managed;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,8 +20,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
 import org.apache.http.HttpStatus;
 
 /**
@@ -42,9 +41,11 @@ public class ActiveClusterMonitor implements Managed {
   @Inject private List<PrestoClusterStatsObserver> clusterStatsObservers;
   @Inject private GatewayBackendManager gatewayBackendManager;
   @Inject private RoutingGroupsManager routingGroupsManager;
+  @Inject private RoutingManager routingManager;
 
   private volatile boolean monitorActive = true;
 
+  private OkHttpClient httpClient;
   private ExecutorService executorService = Executors.newFixedThreadPool(10);
   private ExecutorService singleTaskExecutor = Executors.newSingleThreadExecutor();
 
@@ -52,6 +53,12 @@ public class ActiveClusterMonitor implements Managed {
    * Run an app that queries all active presto clusters for stats.
    */
   public void start() {
+    // Build http client
+    OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+    clientBuilder.writeTimeout(BACKEND_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    clientBuilder.readTimeout(BACKEND_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    httpClient = clientBuilder.build();
+
     singleTaskExecutor.submit(
         () -> {
           while (monitorActive) {
@@ -61,9 +68,11 @@ public class ActiveClusterMonitor implements Managed {
               List<RoutingGroupConfiguration> routingGroups = routingGroupsManager
                   .getAllRoutingGroups(clusters);
 
-              /*
-               * Service all active cluster in unpaused routing groups
-               */
+              // Update saved information about routing groups and clusters
+              routingManager.updateRoutingGroups(routingGroups);
+              routingManager.updateBackendProxyMap(clusters);
+
+              // Service all active cluster in unpaused routing groups
               List<ProxyBackendConfiguration> clustersToService = clusters.stream()
                   .filter(ProxyBackendConfiguration::isActive)
                   .filter(cluster -> {
@@ -77,6 +86,7 @@ public class ActiveClusterMonitor implements Managed {
                     executorService.submit(() -> getPrestoClusterStats(backend));
                 futures.add(call);
               }
+
               List<ClusterStats> stats = new ArrayList<>();
               for (Future<ClusterStats> clusterStatsFuture : futures) {
                 ClusterStats clusterStats = clusterStatsFuture.get();
@@ -88,7 +98,6 @@ public class ActiveClusterMonitor implements Managed {
                   observer.observe(stats);
                 }
               }
-
             } catch (Exception e) {
               log.error("Error performing backend monitor tasks", e);
             }
@@ -126,26 +135,24 @@ public class ActiveClusterMonitor implements Managed {
     }
 
     String target = backend.getProxyTo() + dynpath;
-    HttpURLConnection conn = null;
+    
     try {
-      URL url = new URL(target);
-      conn = (HttpURLConnection) url.openConnection();
-      conn.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(BACKEND_CONNECT_TIMEOUT_SECONDS));
-      conn.setReadTimeout((int) TimeUnit.SECONDS.toMillis(BACKEND_CONNECT_TIMEOUT_SECONDS));
-      conn.setRequestMethod(HttpMethod.GET);
-      conn.connect();
-      int responseCode = conn.getResponseCode();
-      if (responseCode == HttpStatus.SC_OK) {
+      // Build http request
+      Request request = new Request.Builder()
+          .get()
+          .url(target)
+          .build();
+      
+      // Send http request
+      Response response = httpClient.newCall(request).execute();
+
+      // Parse response
+      if (response.code() == HttpStatus.SC_OK) {
         clusterStats.setHealthy(true);
-        BufferedReader reader = 
-            new BufferedReader(new InputStreamReader((InputStream) conn.getContent()));
-            
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-          sb.append(line + "\n");
-        }
-        HashMap<String, Object> result = OBJECT_MAPPER.readValue(sb.toString(), HashMap.class);
+
+        HashMap<String, Object> result = 
+            OBJECT_MAPPER.readValue(response.body().string(), HashMap.class);
+
         clusterStats.setNumWorkerNodes((int) result.get("activeWorkers"));
         clusterStats.setQueuedQueryCount((int) result.get("queuedQueries"));
         clusterStats.setRunningQueryCount((int) result.get("runningQueries"));
@@ -155,15 +162,11 @@ public class ActiveClusterMonitor implements Managed {
         log.info("Host: {}, Cluster_stat: {}", System.getenv("HOSTNAME"), clusterStats);
       } else {
         log.error("Received non 200 response, response code: " 
-            + "{} when fetching cluster stats from [{}]", responseCode, target);
+            + "{} when fetching cluster stats from [{}]", response.code(), target);
       }
     } catch (Exception e) {
       clusterStats.setHealthy(false);
       log.error("Error fetching cluster stats from [{}]", target, e);
-    } finally {
-      if (conn != null) {
-        conn.disconnect();
-      }
     }
 
     return clusterStats;

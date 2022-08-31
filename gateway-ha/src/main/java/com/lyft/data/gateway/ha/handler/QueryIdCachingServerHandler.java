@@ -176,7 +176,7 @@ public class QueryIdCachingServerHandler extends ServerHandler {
           if (!Strings.isNullOrEmpty(queryDetail.getQueryId())) {
             routingManager.setBackendForQueryId(
                 queryDetail.getQueryId(), queryDetail.getBackendUrl());
-
+                
             log.debug(
                 "QueryId [{}] mapped with proxy [{}]",
                 queryDetail.getQueryId(),

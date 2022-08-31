@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,11 +29,17 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public abstract class RoutingManager {
+  public static final String ADHOC = "adhoc";
+  
   private static final Random RANDOM = new Random();
   private final LoadingCache<String, String> queryIdBackendCache;
   private ExecutorService executorService = Executors.newFixedThreadPool(5);
   private GatewayBackendManager gatewayBackendManager;
   protected RoutingGroupsManager routingGroupsManager;
+
+  protected final Object lockObject = new Object();
+  public ConcurrentHashMap<String, Boolean> routingGroups = new ConcurrentHashMap<>();
+  public ConcurrentHashMap<String, String> backendProxyMap = new ConcurrentHashMap<>();
 
   public RoutingManager(GatewayBackendManager gatewayBackendManager,
       RoutingGroupsManager routingGroupsManager) {
@@ -60,6 +67,32 @@ public abstract class RoutingManager {
   }
 
   /**
+   * Updates the internal routing groups.
+   * @param groups Routing groups
+   */
+  public void updateRoutingGroups(List<RoutingGroupConfiguration> groups) {
+    synchronized (lockObject) {
+      routingGroups.clear();
+      for (RoutingGroupConfiguration group : groups) {
+        routingGroups.put(group.getName(), group.isActive());
+      }
+    }
+  }
+
+  /**
+   * Updates the backend map.
+   * @param map Updated map of backends.
+   */
+  public void updateBackendProxyMap(List<ProxyBackendConfiguration> clusters) {
+    synchronized (lockObject) {
+      backendProxyMap.clear();
+      for (ProxyBackendConfiguration cluster : clusters) {
+        backendProxyMap.put(cluster.getName(), cluster.getProxyTo());
+      }
+    }
+  }
+
+  /**
    * Performs routing to an adhoc backend and checks if it is not paused.
    *
    * <p>d.
@@ -73,10 +106,7 @@ public abstract class RoutingManager {
       throw new IllegalStateException("Number of active backends found zero");
     }
 
-    List<RoutingGroupConfiguration> routingGroups =
-        routingGroupsManager.getAllRoutingGroups(backends);
-
-    if (!routingGroupsManager.getByName(routingGroups, "adhoc").isActive()) {
+    if (!routingGroups.get("adhoc")) {
       throw new IllegalStateException(
           "All available backends are currently undergoing maintainence");
     }
@@ -95,11 +125,8 @@ public abstract class RoutingManager {
     List<ProxyBackendConfiguration> backends =
         gatewayBackendManager.getActiveBackends(routingGroup);
 
-    List<RoutingGroupConfiguration> routingGroups =
-        routingGroupsManager.getAllRoutingGroups(backends);
-
     if (backends.isEmpty()
-        || !routingGroupsManager.getByName(routingGroups, routingGroup).isActive()) {
+        || !routingGroups.get(routingGroup)) {
       log.debug("Routing group {} is currently paused or has no active backends", routingGroup);
       return provideAdhocBackend();
     }
