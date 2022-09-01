@@ -81,8 +81,11 @@ public class QueryCachingManager {
   public void cacheInitialInformation(HttpServletRequest request,
       HttpServletResponse response, String queryId, String requestBody, String responseBody) {
     try {
-      // Indicate that the query has been started
-      cacheInActiveQueries(queryId, queryId, 0);
+      // Cache entry in active queries
+      String cacheKey = getActiveQueriesKey(queryId);
+      cachingManager.setInHash(cacheKey, COMPLETED, Boolean.toString(false));
+      cachingManager.setInHash(cacheKey, TRANSACTION_ID, queryId);
+      cachingManager.setInHash(cacheKey, RETRIES, "0");
 
       // Cache request headers
       Enumeration<String> requestHeaders = request.getHeaderNames();
@@ -131,24 +134,11 @@ public class QueryCachingManager {
   }
 
   /**
-   * Caches the query information in the active queries table.
-   * @param queryId QueryId of request
-   * @param active 
-   * @param retries
-   */
-  private void cacheInActiveQueries(String queryId, String initialQueryId, int retries) {
-    String cacheKey = getActiveQueriesKey(queryId);
-    cachingManager.setInHash(cacheKey, COMPLETED, Boolean.toString(false));
-    cachingManager.setInHash(cacheKey, TRANSACTION_ID, initialQueryId);
-    cachingManager.setInHash(cacheKey, RETRIES, Integer.toString(retries));
-  }
-
-  /**
    * Caches the information that a request has been completed.
    * @param queryId The queryId of the request
    */
   public void cacheRequestCompleted(String queryId) {
-    cachingManager.setInHash(getActiveQueriesKey(queryId),
+    cachingManager.setInHash(getActiveQueriesKey(getTransactionId(queryId)),
         COMPLETED, Boolean.toString(true));
   }
 
@@ -169,10 +159,23 @@ public class QueryCachingManager {
    * Update cache to indicate that a query has been retried.
    * @param queryId Query id being retried
    */
-  public void cacheRetryRequest(String queryId) {
-    cachingManager.incrementInHash(
-      getActiveQueriesKey(getTransactionId(queryId)),
-      RETRIES, 1);
+  public void cacheRetryRequest(String queryId, String transactionId) {
+    cacheRetryRequest(queryId, transactionId, 1);
+  }
+
+  /**
+   * Update cache to indicate that a query has been retried and specify the amount
+   * to increment the retry count by.
+   * @param queryId Query id being retried
+   * @param transactionId Transaction id of retried query
+   * @param incrementAmount Amount to increment by
+   */
+  public void cacheRetryRequest(String queryId, String transactionId, int incrementAmount) {
+    // Create new entry for retry
+    cachingManager.setInHash(getActiveQueriesKey(queryId), 
+        TRANSACTION_ID, transactionId);
+
+    cachingManager.incrementInHash(transactionId, RETRIES, incrementAmount);
   }
 
   /**

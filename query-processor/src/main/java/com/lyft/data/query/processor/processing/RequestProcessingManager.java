@@ -181,14 +181,33 @@ public class RequestProcessingManager {
     }
   }
 
+  public void processRetriedRequest(HttpServletRequest request,
+      String backendAddress, String queryId, String transactionId, String responseBody) {
+    try {
+      // Cache that the request has been retried
+      queryCachingManager.cacheRetryRequest(queryId, transactionId);
+
+      JsonNode root = OBJECT_MAPPER.readTree(responseBody);
+
+      submitNextGetRequest(
+          queryId, 
+          root.at("/nextUri").asText(), 
+          request.getHeader(HttpHeader.HOST.asString()),
+          backendAddress);
+    } catch (Exception e) {
+      log.error("Error while retrying request with queryId [{}] and transactionId [{}]",
+          queryId, transactionId, e);
+    }
+  }
+
   /**
    * This function retries a query without having its previous backend known.
-   * This function will mainly be used when dealing with retrying droopped
+   * This function will mainly be used when dealing with retrying dropped
    * requests.
    * @param queryId
    */
   public void retryRequest(String queryId) {
-    retryRequest(queryId, null);
+    retryRequest(queryId, "");
   }
 
   /**
@@ -196,15 +215,10 @@ public class RequestProcessingManager {
    * @param queryId QueryId of request to retry
    */
   public void retryRequest(String queryId, String previousAddress) {
-    if (Strings.isNullOrEmpty(previousAddress)) {
-      // Increment retry count if the previous address is present
-      queryCachingManager.cacheRetryRequest(queryId);
-    }
-
     // Build request to send to proxyserver
     RequestBuilder requestBuilder = new RequestBuilder(HttpConstants.Methods.POST)
         .setUrl(BaseHandler.RETRY_PATH)
-        .addHeader(BaseHandler.RETRY_EXCLUSION, previousAddress);
+        .addHeader(BaseHandler.RETRY_BACKEND_EXCLUSION, previousAddress);
 
     queryCachingManager.fillRetryRequest(queryId, requestBuilder);
 
@@ -220,7 +234,7 @@ public class RequestProcessingManager {
    * @return If the query should be retried
    */
   public boolean isRetryNeccessary(int errorCode, String errorName, String errorType) {
-    return false;
+    return true;
   }
 
   /**

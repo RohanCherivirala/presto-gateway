@@ -1,5 +1,7 @@
 package com.lyft.data.gateway.ha.router;
 
+import com.google.common.base.Strings;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -7,11 +9,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -101,12 +105,8 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
       ConcurrentHashMap<String, Integer>> queueLengthMap) {
     synchronized (lockObject) {
       int sum = 0;
-      int queueSum = 0;
       int weight;
       int numBuckets = 1;
-      int equalDistribution = 0;
-      int smallestQueueLn = 0;
-      int lastButOneQueueLn = 0;
       int maxQueueLn = 0;
       int calculatedWtMaxQueue = 0;
 
@@ -142,7 +142,6 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
                 (e1, e2) -> e1, LinkedHashMap::new));
 
         numBuckets = sortedByQueueLength.size();
-        queueSum = sortedByQueueLength.values().stream().mapToInt(Integer::intValue).sum();
 
         Object[] queueLengths = sortedByQueueLength.values().toArray();
         Object[] clusterNames = sortedByQueueLength.keySet().toArray();
@@ -263,11 +262,41 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
   }
 
   /**
-   * Performs routing to a given cluster group. This falls back to an adhoc backend, if no scheduled
-   * backend is found.
+   * Routes a query in the routing group and excludes the backend that the query
+   * was previously sent to.
+   * @param routingGroup Routing group to send to
+   * @param exclude Name of backend to avoid
+   * @return Name of backend to route to
    */
-  @Override
-  public String provideBackendForRoutingGroup(String routingGroup) {
+  public String getEligibleBackEnd(String routingGroup, String exclude) {
+    if (routingGroupWeightSum.containsKey(routingGroup)
+        && weightedDistributionRouting.containsKey(routingGroup)) {
+      TreeMap<Integer, String> mapWithoutBackend = new TreeMap<>();
+
+      int sum = 0;
+      for (Entry<Integer, String> entry 
+          : weightedDistributionRouting.get(routingGroup).entrySet()) {
+        if (!entry.getValue().equals(exclude)) {
+          sum += entry.getKey().intValue();
+          mapWithoutBackend.put(sum, entry.getValue());
+        }
+      }
+
+      int rnd = RANDOM.nextInt(sum);
+      return mapWithoutBackend.higherEntry(rnd).getValue();
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Provide a backend to be routed to that does not include the backend that
+   * was previously routed to.
+   * @param routingGroups Routing group to rout to
+   * @param lastBackend The last backend that processed the response
+   * @return The backend address to send the request to
+   */
+  public String provideBackendForRoutingGroup(String routingGroup, String lastBackend) {
     Map<String, Integer> backends = clusterQueueLengthMap.get(routingGroup);
 
     if (backends == null || backends.isEmpty()
@@ -276,7 +305,20 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
       return provideAdhocBackend();
     }
     
-    String clusterId = getEligibleBackEnd(routingGroup);
+    String lastBackendName = "";
+    if (!Strings.isNullOrEmpty(lastBackend) && backends.size() > 1) {
+      for (Entry<String, String> entry : backendProxyMap.entrySet()) {
+        if (entry.getValue().equals(lastBackend)) {
+          lastBackendName = entry.getKey();
+          break;
+        }
+      }
+    }
+
+    String clusterId = Strings.isNullOrEmpty(lastBackendName)
+        ? getEligibleBackEnd(routingGroup)
+        : getEligibleBackEnd(routingGroup, lastBackendName);
+
     log.debug("Routing to eligible backend : [{}] for routing group: [{}]",
         clusterId, routingGroup);
 
@@ -288,6 +330,15 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
           .get(RANDOM.nextInt(backends.size()));
       return backendProxyMap.get(randomClusterId);
     }
+  }
+
+  /**
+   * Performs routing to a given cluster group. This falls back to an adhoc backend, if no scheduled
+   * backend is found.
+   */
+  @Override
+  public String provideBackendForRoutingGroup(String routingGroup) {
+    return provideBackendForRoutingGroup(routingGroup, null);
   }
 
   /**

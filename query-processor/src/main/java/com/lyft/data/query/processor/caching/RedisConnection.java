@@ -132,7 +132,7 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
-   * Increments a value stored within a redis hash/
+   * Increments a value stored within a redis hash.
    * @param key Key of hash
    * @param hashKey Key to use in hash
    * @param amount Amount to increment by

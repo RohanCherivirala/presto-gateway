@@ -116,6 +116,13 @@ public abstract class RoutingManager {
   }
 
   /**
+   * Method stem for overloaded method.
+   */
+  public String provideBackendForRoutingGroup(String routingGroup, String lastBackend) {
+    return provideBackendForRoutingGroup(routingGroup);
+  }
+
+  /**
    * Performs routing to a given cluster group. This falls back to an adhoc backend, if no scheduled
    * backend is found or if the routing group is paused.
    *

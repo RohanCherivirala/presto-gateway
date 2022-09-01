@@ -33,8 +33,9 @@ public abstract class BaseHandler {
   public static final String CLIENT_TAGS_HEADER = "X-Trino-Client-Tags";
   public static final String ALTERNATE_CLIENT_TAGS_HEADER = "X-Presto-Client-Tags";
 
-  public static final String CLIENT_SERVER_REDIRECT = "Presto-Gateway-Client-Server-Redirected";
-  public static final String RETRY_EXCLUSION = "Presto-Gateway-Retry-Backend-To-Exclude";
+  public static final String CLIENT_SERVER_REDIRECT = "Gateway-Client-Server-Redirected";
+  public static final String RETRY_BACKEND_EXCLUSION = "Gateway-Retry-Backend-To-Exclude";
+  public static final String RETRY_TRANSACTION_ID = "Gateway-Retry-Transaction-Id";
   public static final String RETRY_PATH = "127.0.0.1" + V1_STATEMENT_PATH;
 
   public static final String PRESTO = "Presto";

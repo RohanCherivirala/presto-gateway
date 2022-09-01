@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
+import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
 import com.lyft.data.gateway.ha.router.RoutingManager;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
@@ -26,7 +27,7 @@ import org.eclipse.jetty.util.Callback;
 
 @Slf4j
 public class QueryIdCachingServerHandler extends ServerHandler {
-  public final String ID_PATH = "/id";
+  public static final String ID_PATH = "/id";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -79,7 +80,10 @@ public class QueryIdCachingServerHandler extends ServerHandler {
 
         if (!Strings.isNullOrEmpty(routingGroup)) {
           // This falls back on adhoc backend if there are no cluster found for the routing group.
-          backendAddress = routingManager.provideBackendForRoutingGroup(routingGroup);
+          String lastBackendAddress = request.getHeader(BaseHandler.RETRY_BACKEND_EXCLUSION);
+          backendAddress = Strings.isNullOrEmpty(lastBackendAddress)
+              ? routingManager.provideBackendForRoutingGroup(routingGroup)
+              : routingManager.provideBackendForRoutingGroup(routingGroup, lastBackendAddress);
         } else {
           backendAddress = routingManager.provideAdhocBackend();
         }
@@ -183,8 +187,14 @@ public class QueryIdCachingServerHandler extends ServerHandler {
                 queryDetail.getBackendUrl());
 
             // Caching response sent
-            requestProcessingManager.processNewRequest(request, response,
-                queryDetail.getBackendUrl(), queryDetail.getQueryId(), queryText, output);
+            if (Strings.isNullOrEmpty(request.getHeader(BaseHandler.RETRY_TRANSACTION_ID))) {
+              requestProcessingManager.processNewRequest(request, response,
+                  queryDetail.getBackendUrl(), queryDetail.getQueryId(), queryText, output);
+            } else {
+              requestProcessingManager.processRetriedRequest(request, 
+                  queryDetail.getBackendUrl(), queryDetail.getQueryId(), 
+                  request.getHeader(BaseHandler.RETRY_TRANSACTION_ID), output);
+            }
 
             // Saving history at gateway.
             queryHistoryManager.submitQueryDetail(queryDetail);
