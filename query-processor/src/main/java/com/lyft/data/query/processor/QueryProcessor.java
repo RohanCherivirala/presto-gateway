@@ -3,8 +3,12 @@ package com.lyft.data.query.processor;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class QueryProcessor {
-  public static int THREAD_POOL_SHUTDOWN_TIME = 40;
-  public static int MAX_RETRIES = 2;
+  public static final int DROPPED_QUERY_SHUTDOWN_TIME = 15;
+  public static final int THREAD_POOL_SHUTDOWN_TIME = 40;
+
+  public static final int DROPPED_QUERY_THREAD_SLEEP = 1500;
+
+  public static final int MAX_RETRIES = 2;
 
   private static volatile boolean terminated = false;
   private static ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();

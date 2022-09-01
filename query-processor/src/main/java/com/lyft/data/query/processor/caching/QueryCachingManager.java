@@ -175,7 +175,8 @@ public class QueryCachingManager {
     cachingManager.setInHash(getActiveQueriesKey(queryId), 
         TRANSACTION_ID, transactionId);
 
-    cachingManager.incrementInHash(transactionId, RETRIES, incrementAmount);
+    cachingManager.incrementInHash(getActiveQueriesKey(transactionId), 
+        RETRIES, incrementAmount);
   }
 
   /**
@@ -184,6 +185,9 @@ public class QueryCachingManager {
    */
   public void fillRetryRequest(String queryId, RequestBuilder builder) {
     String transactionId = getTransactionId(queryId);
+
+    // Add transactionId header
+    builder.addHeader(BaseHandler.RETRY_TRANSACTION_ID, transactionId);
 
     // Add request headers
     HashMap<String, String> headers = getHeadersFromCache(getInitialRequestKey(transactionId));

@@ -36,7 +36,7 @@ public abstract class BaseHandler {
   public static final String CLIENT_SERVER_REDIRECT = "Gateway-Client-Server-Redirected";
   public static final String RETRY_BACKEND_EXCLUSION = "Gateway-Retry-Backend-To-Exclude";
   public static final String RETRY_TRANSACTION_ID = "Gateway-Retry-Transaction-Id";
-  public static final String RETRY_PATH = "127.0.0.1" + V1_STATEMENT_PATH;
+  public static final String RETRY_PATH = "http://127.0.0.1:8080" + V1_STATEMENT_PATH;
 
   public static final String PRESTO = "Presto";
   public static final String TRINO = "Trino";

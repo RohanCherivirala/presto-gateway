@@ -215,6 +215,8 @@ public class RequestProcessingManager {
    * @param queryId QueryId of request to retry
    */
   public void retryRequest(String queryId, String previousAddress) {
+    log.debug("Retrying query with query id [{}]", queryId);
+
     // Build request to send to proxyserver
     RequestBuilder requestBuilder = new RequestBuilder(HttpConstants.Methods.POST)
         .setUrl(BaseHandler.RETRY_PATH)
@@ -256,6 +258,12 @@ public class RequestProcessingManager {
       String host, String backendAddress) {
     ClusterRequest newRequest = new ClusterRequest(queryId, 
         rewriteNextUriToBackend(nextUri, backendAddress), host, backendAddress);
+
+    // Check if application is still running
+    if (QueryProcessor.isTerminated()) {
+      QueryProcessor.getQueue().add(queryId);
+      return;
+    }
 
     queue.submit(() -> {
       try {

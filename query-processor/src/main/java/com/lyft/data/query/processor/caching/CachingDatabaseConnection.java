@@ -9,13 +9,15 @@ public abstract class CachingDatabaseConnection {
 
   public abstract String set(String key, String value);
 
-  public abstract long addToList(String key, String value);
-
   public abstract boolean setInHash(String key, String hashKey, String hashValue);
 
   public abstract String getFromHash(String key, String hashKey);
 
   public abstract long incrementInHash(String key, String hashKey, int amount);
+
+  public abstract long addToList(String key, String value);
+
+  public abstract String getFromList(String key);
 
   public abstract boolean validateConnection();
 

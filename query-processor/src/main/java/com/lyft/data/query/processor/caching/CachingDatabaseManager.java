@@ -17,7 +17,7 @@ public class CachingDatabaseManager {
   public static final String HEADER_FIELD = "header";
   public static final String BODY_FIELD = "body";
 
-  public static final String HUNG_QUERIES_KEY = ACTIVE_QUERIES_PREFIX + "hung-queries";
+  public static final String DROPPED_QUERIES_KEY = ACTIVE_QUERIES_PREFIX + "hung-queries";
 
   private QueryProcessorConfiguration configuration;
   private CachingDatabaseConnection client;
@@ -111,7 +111,7 @@ public class CachingDatabaseManager {
 
   /**
    * Adds a key to a list.
-   * @param key Redis key
+   * @param key Key of list
    * @param value Value to add to list
    * @return List addition return value
    */
@@ -119,6 +119,20 @@ public class CachingDatabaseManager {
     try {
       client.open();
       return client.addToList(key, value);
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Gets a key from a list.
+   * @param key Key of list
+   * @return The next element, if one exists
+   */
+  public String getFromList(String key) {
+    try {
+      client.open();
+      return client.getFromList(key);
     } finally {
       client.close();
     }

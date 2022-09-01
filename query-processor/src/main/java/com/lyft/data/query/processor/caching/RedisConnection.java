@@ -156,6 +156,16 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
+   * Gets an element from a redis list if it exists.
+   * @param key Redis key
+   * @returm Value from list, if one exists
+   */
+  public String getFromList(String key) {
+    Mono<String> response = reactive.lpop(key);
+    return response != null ? response.block() : null;
+  }
+
+  /**
    * Validates that the redis servre is connected.
    * @return If the connection is valid
    */
