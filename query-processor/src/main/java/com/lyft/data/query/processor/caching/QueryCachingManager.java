@@ -159,7 +159,7 @@ public class QueryCachingManager {
    * Update cache to indicate that a query has been retried.
    * @param queryId Query id being retried
    */
-  public void cacheRetryRequest(String queryId, String transactionId) {
+  public void cacheRetriedRequest(String queryId, String transactionId) {
     cacheRetryRequest(queryId, transactionId, 1);
   }
 

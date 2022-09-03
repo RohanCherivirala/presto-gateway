@@ -185,7 +185,7 @@ public class RequestProcessingManager {
       String backendAddress, String queryId, String transactionId, String responseBody) {
     try {
       // Cache that the request has been retried
-      queryCachingManager.cacheRetryRequest(queryId, transactionId);
+      queryCachingManager.cacheRetriedRequest(queryId, transactionId);
 
       JsonNode root = OBJECT_MAPPER.readTree(responseBody);
 
