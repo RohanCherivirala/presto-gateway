@@ -233,6 +233,10 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
           if (!Strings.isNullOrEmpty(queryDetail.getQueryId())) {
             routingManager.setBackendForQueryId(
                 queryDetail.getQueryId(), queryDetail.getBackendUrl());
+
+            // Saving history at gateway.
+            queryHistoryManager.submitQueryDetail(queryDetail);
+            
             log.debug(
                 "QueryId [{}] mapped with proxy [{}]",
                 queryDetail.getQueryId(),
@@ -246,8 +250,6 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
               output,
               response.getStatus());
         }
-        // Saving history at gateway.
-        queryHistoryManager.submitQueryDetail(queryDetail);
       } else {
         log.debug("SKIPPING For {}", requestPath);
       }

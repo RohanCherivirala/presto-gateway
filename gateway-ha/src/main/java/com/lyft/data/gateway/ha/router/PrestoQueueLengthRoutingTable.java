@@ -1,15 +1,11 @@
 package com.lyft.data.gateway.ha.router;
 
-import com.google.inject.Inject;
-import com.lyft.data.gateway.ha.config.ProxyBackendConfiguration;
-import com.lyft.data.gateway.ha.config.RoutingGroupConfiguration;
-
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -32,7 +28,6 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
   private static final Random RANDOM = new Random();
   private static final int MIN_WT = 1;
   private static final int MAX_WT = 100;
-  private final Object lockObject = new Object();
   private ConcurrentHashMap<String, Integer> routingGroupWeightSum;
   private ConcurrentHashMap<String, ConcurrentHashMap<String, Integer>> clusterQueueLengthMap;
   private Map<String, TreeMap<Integer, String>> weightedDistributionRouting;
@@ -226,7 +221,6 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
 
       computeWeightsBasedOnQueueLength(clusterQueueLengthMap);
     }
-
   }
 
   /**
@@ -274,37 +268,27 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
    */
   @Override
   public String provideBackendForRoutingGroup(String routingGroup) {
-    List<ProxyBackendConfiguration> backends =
-        getGatewayBackendManager().getActiveBackends(routingGroup);
+    Map<String, Integer> backends = clusterQueueLengthMap.get(routingGroup);
 
-    List<RoutingGroupConfiguration> routingGroups =
-        routingGroupsManager.getAllRoutingGroups(backends);
-
-    if (backends.isEmpty()
-        || !routingGroupsManager.getByName(routingGroups, routingGroup).isActive()) {
+    if (backends == null || backends.isEmpty()
+        || !routingGroups.get(routingGroup)) {
       log.debug("Routing group {} is currently paused or has no active backends", routingGroup);
       return provideAdhocBackend();
     }
     
-    Map<String, String> proxyMap = new HashMap<>();
-    for (ProxyBackendConfiguration backend : backends) {
-      proxyMap.put(backend.getName(), backend.getProxyTo());
-    }
-
-    updateRoutingTable(routingGroup, proxyMap.keySet());
     String clusterId = getEligibleBackEnd(routingGroup);
     log.debug("Routing to eligible backend : [{}] for routing group: [{}]",
         clusterId, routingGroup);
 
     if (clusterId != null) {
-      return proxyMap.get(clusterId);
+      return backendProxyMap.get(clusterId);
     } else {
       log.debug("Falling back to random distribution");
-      int backendId = Math.abs(RANDOM.nextInt()) % backends.size();
-      return backends.get(backendId).getProxyTo();
+      String randomClusterId = new ArrayList<String>(backends.keySet())
+          .get(RANDOM.nextInt(backends.size()));
+      return backendProxyMap.get(randomClusterId);
     }
   }
-
 
   /**
    * Performs routing to an adhoc backend based on computed weights.
@@ -313,35 +297,26 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
    */
   @Override
   public String provideAdhocBackend() {
-    Map<String, String> proxyMap = new HashMap<>();
-    List<ProxyBackendConfiguration> backends = getGatewayBackendManager().getActiveAdhocBackends();
+    Map<String, Integer> backends = clusterQueueLengthMap.get(ADHOC);
     
-    if (backends.size() == 0) {
+    if (backends == null || backends.size() == 0) {
       throw new IllegalStateException("Number of active backends found zero");
     }
 
-    List<RoutingGroupConfiguration> routingGroups =
-        routingGroupsManager.getAllRoutingGroups(backends);
-
-    if (!routingGroupsManager.getByName(routingGroups, "adhoc").isActive()) {
+    if (!routingGroups.get(ADHOC)) {
       throw new IllegalStateException(
           "All available backends are currently undergoing maintainence");
     }
 
-    for (ProxyBackendConfiguration backend : backends) {
-      proxyMap.put(backend.getName(), backend.getProxyTo());
-    }
-
-    updateRoutingTable("adhoc", proxyMap.keySet());
-
-    String clusterId = getEligibleBackEnd("adhoc");
+    String clusterId = getEligibleBackEnd(ADHOC);
     log.debug("Routing to eligible backend : " + clusterId + " for routing group: adhoc");
     if (clusterId != null) {
-      return proxyMap.get(clusterId);
+      return backendProxyMap.get(clusterId);
     } else {
       log.debug("Falling back to random distribution");
-      int backendId = Math.abs(RANDOM.nextInt()) % backends.size();
-      return backends.get(backendId).getProxyTo();
+      String randomClusterId = new ArrayList<String>(backends.keySet())
+          .get(RANDOM.nextInt(backends.size()));
+      return backendProxyMap.get(randomClusterId);
     }
   }
 }
