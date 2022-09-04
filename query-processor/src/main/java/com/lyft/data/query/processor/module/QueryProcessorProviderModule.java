@@ -1,17 +1,16 @@
 package com.lyft.data.query.processor.module;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.lyft.data.baseapp.AppModule;
 import com.lyft.data.query.processor.caching.CachingDatabaseManager;
 import com.lyft.data.query.processor.caching.QueryCachingManager;
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
+import com.lyft.data.query.processor.error.ErrorManager;
 import com.lyft.data.query.processor.processing.RequestProcessingManager;
 
 import io.dropwizard.setup.Environment;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -27,12 +26,12 @@ public class QueryProcessorProviderModule
   public static final int QUEUE_SIZE = 10;
 
   private final ThreadPoolExecutor queue;
-  private final ExecutorService queueService;
+  private final AsyncHttpClient httpClient;
+
   private final CachingDatabaseManager cachingManager;
+  private final ErrorManager errorManager;
   private final QueryCachingManager queryCachingManager;
   private final RequestProcessingManager requestProcessingManager;
-
-  private final AsyncHttpClient httpClient;
 
   public static CachingDatabaseManager staticCachingManager;
   public static RequestProcessingManager staticRequestManager;
@@ -46,14 +45,15 @@ public class QueryProcessorProviderModule
 
     // Set up thread pool
     queue = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-    queueService = MoreExecutors.getExitingExecutorService(queue);
 
-    // Set up caching connection
+    // Set up managers
+    errorManager = new ErrorManager();
     cachingManager = new CachingDatabaseManager(config);
     queryCachingManager = new QueryCachingManager(cachingManager);
     requestProcessingManager = new RequestProcessingManager(
-        queue, queryCachingManager, httpClient);
+        queue, queryCachingManager, httpClient, errorManager);
 
+    // Set static variables for other modules
     QueryProcessorProviderModule.staticCachingManager = cachingManager;
     QueryProcessorProviderModule.staticRequestManager = requestProcessingManager;
     QueryProcessorProviderModule.staticQueryCachingManager = queryCachingManager;
@@ -76,13 +76,13 @@ public class QueryProcessorProviderModule
   }
 
   /**
-   * Provides executor service for queue.
-   * @return Thread pool executor service
+   * Returns the error manager.
+   * @return Error manager
    */
   @Provides
   @Singleton
-  public ExecutorService provideQueueService() {
-    return queueService;
+  public ErrorManager getErrorManager() {
+    return errorManager;
   }
 
   /**

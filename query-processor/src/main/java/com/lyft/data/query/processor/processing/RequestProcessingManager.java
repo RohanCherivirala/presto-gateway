@@ -7,6 +7,7 @@ import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.QueryProcessor;
 import com.lyft.data.query.processor.caching.QueryCachingManager;
 import com.lyft.data.query.processor.config.ClusterRequest;
+import com.lyft.data.query.processor.error.ErrorManager;
 
 import java.net.URI;
 import java.util.concurrent.ExecutionException;
@@ -43,13 +44,16 @@ public class RequestProcessingManager {
   private final ThreadPoolExecutor queue;
   private final QueryCachingManager queryCachingManager;
   private final AsyncHttpClient httpClient;
+  private final ErrorManager errorManager;
   
   public RequestProcessingManager(ThreadPoolExecutor queue,
       QueryCachingManager queryCachingManager,
-      AsyncHttpClient httpClient) {
+      AsyncHttpClient httpClient,
+      ErrorManager errorManager) {
     this.queue = queue;
     this.queryCachingManager = queryCachingManager;
     this.httpClient = httpClient;
+    this.errorManager = errorManager;
   }
 
   /**
@@ -236,7 +240,7 @@ public class RequestProcessingManager {
    * @return If the query should be retried
    */
   public boolean isRetryNeccessary(int errorCode, String errorName, String errorType) {
-    return true;
+    return errorManager.shouldRetry(errorCode, errorName);
   }
 
   /**
