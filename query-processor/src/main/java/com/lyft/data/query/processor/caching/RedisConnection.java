@@ -128,6 +128,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public String getFromHash(String key, String hashKey) {
     Mono<String> response = reactive.hget(key, hashKey);
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response.block();
   }
 
@@ -140,6 +141,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public long incrementInHash(String key, String hashKey, int amount) {
     Mono<Long> response = reactive.hincrby(key, hashKey, amount);
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response.block().longValue();
   }
 
@@ -162,6 +164,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public String getFromList(String key) {
     Mono<String> response = reactive.lpop(key);
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response != null ? response.block() : null;
   }
 
