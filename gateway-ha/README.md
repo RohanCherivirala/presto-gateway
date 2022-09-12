@@ -244,15 +244,15 @@ curl -X GET presto-gateway.prod.6si.com/gateway/backend/active | python -m json.
 
 ### Add a routing group
 
-`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroup -d '{"name": "[name of routing group]", "active": [true/false]}'`
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroups -d '{"name": "[name of routing group]", "active": [true/false]}'`
 
 ### Update a routing group
 
-`curl -X PUT presto-gateway.prod.6si.com/gateway/routingGroup/[name of routing group] -d '{"active": [true/false]}'`
+`curl -X PUT presto-gateway.prod.6si.com/gateway/routingGroups/[name of routing group] -d '{"active": [true/false]}'`
 
 ### Delete a routing group
 
-`curl -X DELETE presto-gateway.prod.6si.com/gateway/routingGroup/[name of routing group]`
+`curl -X DELETE presto-gateway.prod.6si.com/gateway/routingGroups/[name of routing group]`
 
 ### Pause a routing group
 

@@ -97,6 +97,26 @@ curl -X POST http://localhost:8080/gateway/backend/deactivate/presto2
 ### Activate a backend
 `curl -X POST http://localhost:8080/gateway/backend/activate/presto2`
 
+### Add a routing group
+
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroups -d '{"name": "[name of routing group]", "active": [true/false]}'`
+
+### Update a routing group
+
+`curl -X PUT presto-gateway.prod.6si.com/gateway/routingGroups/[name of routing group] -d '{"active": [true/false]}'`
+
+### Delete a routing group
+
+`curl -X DELETE presto-gateway.prod.6si.com/gateway/routingGroups/[name of routing group]`
+
+### Pause a routing group
+
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroup/pauseRoutingGroup/[name of routing group]`
+
+### Resume a routing group
+
+`curl -X POST presto-gateway.prod.6si.com/gateway/routingGroup/resumeRoutingGroup/[name of routing group]`
+
 
 ### Query History UI - check query plans etc.
 PrestoGateway records history of recent queries and displays links to check query details page in respective presto cluster.  
