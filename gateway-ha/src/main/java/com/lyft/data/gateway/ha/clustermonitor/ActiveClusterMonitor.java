@@ -123,9 +123,6 @@ public class ActiveClusterMonitor implements Managed {
     clusterStats.setClusterId(backend.getName());
     clusterStats.setHealthy(false);
 
-    // The V1_NODE_PATH is used in 331 while V1_CLUSTER_PATH is used in 318
-    // TODO: Remove V1_CLUSTER_PATH once we're upgraded all clusters.
-
     String dynpath = ""; // Path Based on Presto and Trino cluster
 
     if (backend.getProxyTo().contains("trino") || backend.getProxyTo().contains("dashboard")) {
