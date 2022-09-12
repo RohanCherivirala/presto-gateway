@@ -40,8 +40,10 @@ logging:
   # Logger-specific levels.
   loggers:
     com.lyft: DEBUG
-    com.lyft.data.server: INFO
-    com.lyft.data.query.processor.caching: INFO
+    # com.lyft.data.server: INFO
+    # com.lyft.data.query.processor.caching: INFO
+    # com.lyft.data.gateway: INFO
+    # com.lyft.data.gateway.ha.clustermonitor.ActiveClusterMonitor: WARN
 
   appenders:
     - type: console
