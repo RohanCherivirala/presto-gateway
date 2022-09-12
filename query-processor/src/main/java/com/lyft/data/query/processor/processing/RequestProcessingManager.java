@@ -2,6 +2,8 @@ package com.lyft.data.query.processor.processing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import com.google.common.base.Strings;
 import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.QueryProcessor;
@@ -35,7 +37,8 @@ import org.eclipse.jetty.http.HttpHeader;
 public class RequestProcessingManager {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public static final String NEXT_URI_PATH = "/nextUri";
+  public static final String NEXT_URI = "nextUri";
+  public static final String NEXT_URI_PATH = "/" + NEXT_URI;
   public static final String ERROR_PATH = "/error";
   public static final String ERROR_CODE_PATH = "/error/errorCode";
   public static final String ERROR_NAME_PATH = "/error/errorName";
@@ -120,15 +123,21 @@ public class RequestProcessingManager {
 
       JsonNode root = OBJECT_MAPPER.readTree(output);
 
-      // Error found
       if (!root.at(ERROR_PATH).isMissingNode()) {
+        // Error found
         int errorCode = root.at(ERROR_CODE_PATH).asInt();
         String errorName = root.at(ERROR_NAME_PATH).asText();
         String errorType = root.at(ERROR_TYPE_PATH).asText();
 
-        log.debug("Error Details:");
         log.debug("Error Code: {}, Error Name: {}, Error Type: {}",
             errorCode, errorName, errorType);
+
+        // Remove nextUri field from cached response if exists
+        if (!root.at(NEXT_URI_PATH).isMissingNode()) {
+          ((ObjectNode) root).remove(NEXT_URI);
+          String editedResponse = OBJECT_MAPPER.writeValueAsString(root);
+          queryCachingManager.editCacheForError(request, editedResponse);
+        }
 
         // Attempt to retury query if possible
         if (isRetryNeccessary(errorCode, errorName, errorType)

@@ -115,9 +115,9 @@ public class RedisConnection extends CachingDatabaseConnection {
    * @return Boolean response of hset function
    */
   public boolean setInHash(String key, String hashKey, String hashValue) {
-    Mono<Boolean> response = reactive.hset(key, hashKey, hashValue);
-    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
-    return response.block();
+    Boolean response = reactive.hset(key, hashKey, hashValue).block();
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS).block();
+    return response.booleanValue();
   }
 
   /**
@@ -128,7 +128,6 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public String getFromHash(String key, String hashKey) {
     Mono<String> response = reactive.hget(key, hashKey);
-    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response.block();
   }
 
@@ -141,7 +140,6 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public long incrementInHash(String key, String hashKey, int amount) {
     Mono<Long> response = reactive.hincrby(key, hashKey, amount);
-    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response.block().longValue();
   }
 
@@ -152,9 +150,9 @@ public class RedisConnection extends CachingDatabaseConnection {
    * @return Response from redis
    */
   public long addToList(String key, String value) {
-    Mono<Long> response = reactive.lpush(key, value);
-    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
-    return response.block().longValue();
+    Long response = reactive.lpush(key, value).block();
+    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS).block();
+    return response.longValue();
   }
 
   /**
@@ -164,7 +162,6 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public String getFromList(String key) {
     Mono<String> response = reactive.lpop(key);
-    reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS);
     return response != null ? response.block() : null;
   }
 

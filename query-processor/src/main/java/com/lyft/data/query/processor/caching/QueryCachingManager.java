@@ -214,9 +214,8 @@ public class QueryCachingManager {
       HttpServletResponse resp, String queryId) throws IOException {
     String responseBody = "";
     String transactionId = getTransactionId(queryId);
-    String activeQueriesKey = getActiveQueriesKey(transactionId);
 
-    if (cachingManager.getFromHash(activeQueriesKey,
+    if (cachingManager.getFromHash(getActiveQueriesKey(transactionId),
         COMPLETED).equals(Boolean.toString(true))) {
       // Complete response has been recieved
       String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString())
@@ -224,6 +223,7 @@ public class QueryCachingManager {
 
       String cacheKey = getIncrementalCacheKey(correctedUri);
       
+      fillResponseHeader(getHeadersFromCache(cacheKey), resp);
       responseBody = cachingManager.getFromHash(cacheKey, CachingDatabaseManager.BODY_FIELD);
     } else {
       // Query is still being processed
@@ -233,10 +233,23 @@ public class QueryCachingManager {
     }
 
     if (Strings.isNullOrEmpty(responseBody)) {
-      throw new InvalidCacheLoadException("No matching entry in cache");
+      throw new InvalidCacheLoadException("No matching entry in cache for transactionId"
+          + transactionId);
     }
 
     fillResponseBody(responseBody.getBytes(Charset.defaultCharset()), resp);
+  }
+
+  /**
+   * Fills response header based on header map.
+   * @param headers Map of headers
+   * @param response Reponse to be sent to the client
+   */
+  private void fillResponseHeader(Map<String, String> headers,
+      HttpServletResponse response) {
+    for (Entry<String, String> header : headers.entrySet()) {
+      response.addHeader(header.getKey(), header.getValue());
+    }
   }
 
   /**
@@ -252,6 +265,24 @@ public class QueryCachingManager {
     response.setDateHeader(BaseHandler.DATE_HEADER, System.currentTimeMillis());
 
     response.getOutputStream().write(bytes);
+  }
+
+  /**
+   * Edits the cached response when an error is recieved.
+   * @param newBody The new body to be stored
+   */
+  public void editCacheForError(ClusterRequest request, String newBody)
+      throws JsonProcessingException {
+    String cacheKey = getIncrementalCacheKey(request.getNextUri());
+
+    // Remove content encoding header
+    Map<String, String> headers = getHeadersFromCache(cacheKey);
+    headers.remove(HttpHeaders.CONTENT_ENCODING);
+
+    cacheHeader(headers, cacheKey);
+
+    // Set request body
+    cachingManager.setInHash(cacheKey, CachingDatabaseManager.BODY_FIELD, newBody);
   }
 
 
