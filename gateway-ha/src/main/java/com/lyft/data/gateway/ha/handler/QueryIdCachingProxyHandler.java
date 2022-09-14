@@ -11,7 +11,6 @@ import com.lyft.data.proxyserver.ProxyHandler;
 import com.lyft.data.proxyserver.wrapper.MultiReadHttpServletRequest;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Optional;
@@ -34,7 +33,6 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   public static final String V1_INFO_PATH = "/v1/info";
   public static final String UI_API_STATS_PATH = "/ui/api/stats";
   public static final String PRESTO_UI_PATH = "/ui";
-  public static final String PRESTO_UI_QUERY_PATH = "/ui/query";
 
   // Add support for Trino
   public static final String USER_HEADER = "X-Trino-User";
@@ -225,7 +223,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   protected String extractQueryIdIfPresent(String referer) {
     try {
       URL refUrl = new URL(referer);
-      if (refUrl.getPath().startsWith(PRESTO_UI_QUERY_PATH)) {
+      if (refUrl.getPath().startsWith(PRESTO_UI_PATH)) {
         return refUrl.getQuery();
       }
     } catch (Exception e) {
