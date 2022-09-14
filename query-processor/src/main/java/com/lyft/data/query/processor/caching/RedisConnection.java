@@ -59,7 +59,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public void open() {
-    log.debug("Redis connection opened");
+    log.trace("Redis connection opened");
   }
 
   /**
@@ -67,7 +67,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public void close() {
-    log.debug("Redis connection closed");
+    log.trace("Redis connection closed");
   }
 
   /**
@@ -163,6 +163,16 @@ public class RedisConnection extends CachingDatabaseConnection {
   public String getFromList(String key) {
     Mono<String> response = reactive.lpop(key);
     return response != null ? response.block() : null;
+  }
+
+  /**
+   * Deletes a set of keys from redis.
+   * @param keys Keys to delete
+   * @return Number of keys deleted
+   */
+  public long deleteKeys(String... keys) {
+    Mono<Long> response = reactive.del(keys);
+    return response.block().longValue();
   }
 
   /**

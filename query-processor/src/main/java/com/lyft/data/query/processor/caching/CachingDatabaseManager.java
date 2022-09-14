@@ -139,6 +139,20 @@ public class CachingDatabaseManager {
   }
 
   /**
+   * Deletes a set of keys.
+   * @param keys Keys to delete
+   * @return Number of keys deleted
+   */
+  public long deleteKeys(String... keys) {
+    try {
+      client.open();
+      return client.deleteKeys(keys);
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
    * Validates that the connection is working.
    * @return If the connection is working
    */

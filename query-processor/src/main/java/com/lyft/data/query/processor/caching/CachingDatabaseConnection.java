@@ -19,6 +19,8 @@ public abstract class CachingDatabaseConnection {
 
   public abstract String getFromList(String key);
 
+  public abstract long deleteKeys(String... keys);
+
   public abstract boolean validateConnection();
 
   public abstract void shutdown();

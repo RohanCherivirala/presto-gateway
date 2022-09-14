@@ -225,6 +225,9 @@ public class QueryCachingManager {
       
       fillResponseHeader(getHeadersFromCache(cacheKey), resp);
       responseBody = cachingManager.getFromHash(cacheKey, CachingDatabaseManager.BODY_FIELD);
+
+      // Delete key from cache
+      cachingManager.deleteKeys(cacheKey);
     } else {
       // Query is still being processed
       responseBody = cachingManager.getFromHash(
