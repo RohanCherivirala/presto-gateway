@@ -272,7 +272,8 @@ public class PrestoQueueLengthRoutingTable extends HaRoutingManager {
 
     if (backends == null || backends.isEmpty()
         || !routingGroups.get(routingGroup)) {
-      log.debug("Routing group {} is currently paused or has no active backends", routingGroup);
+      log.warn("Routing group {} is currently paused or has no active backends, "
+          + "routing {} to adhoc", routingGroup);
       return provideAdhocBackend();
     }
     
