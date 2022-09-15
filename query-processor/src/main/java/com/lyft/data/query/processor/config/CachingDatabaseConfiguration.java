@@ -11,5 +11,5 @@ public class CachingDatabaseConfiguration {
   private String databaseType;
   private String host;
   private int port;
-  private String bucket;
+  private String bucket = "6si-loki-dev";
 }

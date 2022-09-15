@@ -4,7 +4,6 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.base.Strings;
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 import java.util.Arrays;
@@ -15,21 +14,25 @@ import org.apache.commons.codec.Charsets;
 
 @Slf4j
 public class S3Connection extends CachingDatabaseConnection {
-  public String bucket = "6si-loki-dev";
+  public String bucket;
   public static final String prefix = "presto-gateway/test/";
 
   AmazonS3 client;
 
   public S3Connection(QueryProcessorConfiguration configuration) {
-    if (!Strings.isNullOrEmpty(configuration.getCachingDatabase().getBucket())) {
+    try {
       bucket = configuration.getCachingDatabase().getBucket();
-    }
 
-    // Create client connection
-    client = AmazonS3ClientBuilder
-        .standard()
-        .withRegion(Regions.US_EAST_1)
-        .build();
+      // Create client connection
+      client = AmazonS3ClientBuilder
+      .standard()
+      .withRegion(Regions.US_EAST_1)
+      .build();
+
+      log.info("S3 connection successfully created");
+    } catch (Exception e) {
+      log.error("Error occured while creating S3 connection", e);
+    }
   }
 
   @Override
