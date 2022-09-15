@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
+import java.io.InputStream;
 import java.util.Arrays;
 
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +50,8 @@ public class S3Connection extends CachingDatabaseConnection {
   @Override
   public String get(String key) {
     try (S3Object response = client.getObject(bucket, getProperKey(key))) {
-      return new String(response.getObjectContent().readAllBytes(), Charsets.UTF_8);
+      return new String(((InputStream)(response.getObjectContent())).readAllBytes(), 
+          Charsets.UTF_8);
     } catch (Exception e) {
       log.error("Error while getting information- Key: {}", key, e);
     }
@@ -83,7 +85,7 @@ public class S3Connection extends CachingDatabaseConnection {
   public long incrementInHash(String key, String hashKey, int amount) {
     try (S3Object response = client.getObject(bucket, getProperKey(key))) {
       int newValue = Integer.valueOf(new String(
-          response.getObjectContent().readAllBytes(), Charsets.UTF_8)) + amount;
+          ((InputStream)(response.getObjectContent())).readAllBytes(), Charsets.UTF_8)) + amount;
 
       setInHash(getProperKey(key), hashKey, Integer.toString(newValue));
       return newValue;
