@@ -5,8 +5,11 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.util.IOUtils;
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
@@ -50,8 +53,7 @@ public class S3Connection extends CachingDatabaseConnection {
   @Override
   public String get(String key) {
     try (S3Object response = client.getObject(bucket, getProperKey(key))) {
-      return new String(response.getObjectContent().readNBytes(Integer.MAX_VALUE), 
-          Charsets.UTF_8);
+      return getContentString(response);
     } catch (Exception e) {
       log.error("Error while getting information- Key: {}", key, e);
     }
@@ -84,8 +86,7 @@ public class S3Connection extends CachingDatabaseConnection {
   @Override
   public long incrementInHash(String key, String hashKey, int amount) {
     try (S3Object response = client.getObject(bucket, getProperKey(key))) {
-      int newValue = Integer.valueOf(new String(
-          response.getObjectContent().readNBytes(Integer.MAX_VALUE), Charsets.UTF_8)) + amount;
+      int newValue = Integer.valueOf(getContentString(response)) + amount;
 
       setInHash(getProperKey(key), hashKey, Integer.toString(newValue));
       return newValue;
@@ -145,5 +146,16 @@ public class S3Connection extends CachingDatabaseConnection {
    */
   private String getCombinedHashKey(String key, String hashKey) {
     return key + "-" + hashKey;
+  }
+
+  /**
+   * Returns the information associated with an object.
+   * Reads 
+   * @param obj Object to get information from
+   * @return Content associated with object
+   * @throws IOException
+   */
+  private String getContentString(S3Object obj) throws IOException {
+    return new String(IOUtils.toByteArray(obj.getObjectContent()), Charsets.UTF_8);
   }
 }
