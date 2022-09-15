@@ -50,7 +50,7 @@ public class S3Connection extends CachingDatabaseConnection {
   @Override
   public String get(String key) {
     try (S3Object response = client.getObject(bucket, getProperKey(key))) {
-      return new String(((InputStream)(response.getObjectContent())).readAllBytes(), 
+      return new String(response.getObjectContent().readNBytes(Integer.MAX_VALUE), 
           Charsets.UTF_8);
     } catch (Exception e) {
       log.error("Error while getting information- Key: {}", key, e);
@@ -85,7 +85,7 @@ public class S3Connection extends CachingDatabaseConnection {
   public long incrementInHash(String key, String hashKey, int amount) {
     try (S3Object response = client.getObject(bucket, getProperKey(key))) {
       int newValue = Integer.valueOf(new String(
-          ((InputStream)(response.getObjectContent())).readAllBytes(), Charsets.UTF_8)) + amount;
+          response.getObjectContent().readNBytes(Integer.MAX_VALUE), Charsets.UTF_8)) + amount;
 
       setInHash(getProperKey(key), hashKey, Integer.toString(newValue));
       return newValue;
