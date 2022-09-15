@@ -7,9 +7,8 @@ import io.lettuce.core.RedisConnectionException;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.api.reactive.RedisReactiveCommands;
-
-import java.util.Random;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -27,6 +26,7 @@ public class RedisConnection extends CachingDatabaseConnection {
   private static RedisClient client;
   private StatefulRedisConnection<String, String> statefulConnection;
   private RedisReactiveCommands<String, String> reactive;
+  private RedisAsyncCommands<String, String> asyncCommands;
 
   public RedisConnection(QueryProcessorConfiguration configuration) {
     try {
@@ -52,6 +52,7 @@ public class RedisConnection extends CachingDatabaseConnection {
   public void startup() {
     statefulConnection = client.connect();
     reactive = statefulConnection.reactive();
+    asyncCommands = statefulConnection.async();
   }
 
   /**
@@ -59,7 +60,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public void open() {
-    log.trace("Redis connection opened");
+    // Open connection
   }
 
   /**
@@ -67,7 +68,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public void close() {
-    log.trace("Redis connection closed");
+    // Close connection
   }
 
   /**
@@ -108,6 +109,17 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
+   * Gets a value from a redis hash.
+   * @param key Key of hash
+   * @param hashKey Key to use in hash
+   * @return Value associated with key in hash
+   */
+  public String getFromHash(String key, String hashKey) {
+    Mono<String> response = reactive.hget(key, hashKey);
+    return response.block();
+  }
+
+  /**
    * Adds a key-value mapping to a redis hash.
    * @param key Redis key
    * @param hashKey Key to use in hash
@@ -118,17 +130,6 @@ public class RedisConnection extends CachingDatabaseConnection {
     Boolean response = reactive.hset(key, hashKey, hashValue).block();
     reactive.expire(key, DEFAULT_EXPIRATION_TIME_SECONDS).block();
     return response.booleanValue();
-  }
-
-  /**
-   * Gets a value from a redis hash.
-   * @param key Key of hash
-   * @param hashKey Key to use in hash
-   * @return Value associated with key in hash
-   */
-  public String getFromHash(String key, String hashKey) {
-    Mono<String> response = reactive.hget(key, hashKey);
-    return response.block();
   }
 
   /**
@@ -144,6 +145,16 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
+   * Gets an element from a redis list if it exists.
+   * @param key Redis key
+   * @returm Value from list, if one exists
+   */
+  public String getFromList(String key) {
+    Mono<String> response = reactive.lpop(key);
+    return response != null ? response.block() : null;
+  }
+
+  /**
    * Adds an element to a redis list.
    * @param key Redis key
    * @param value Value to add to list
@@ -156,23 +167,12 @@ public class RedisConnection extends CachingDatabaseConnection {
   }
 
   /**
-   * Gets an element from a redis list if it exists.
-   * @param key Redis key
-   * @returm Value from list, if one exists
-   */
-  public String getFromList(String key) {
-    Mono<String> response = reactive.lpop(key);
-    return response != null ? response.block() : null;
-  }
-
-  /**
    * Deletes a set of keys from redis.
    * @param keys Keys to delete
    * @return Number of keys deleted
    */
-  public long deleteKeys(String... keys) {
-    Mono<Long> response = reactive.del(keys);
-    return response.block().longValue();
+  public void deleteKeys(String... keys) {
+    asyncCommands.del(keys);
   }
 
   /**
@@ -181,19 +181,8 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   @Override
   public boolean validateConnection() {
-    Random rand = new Random();
-    long randVal = rand.nextLong();
-
-    try {
-      open();
-      return set(VALIDATE_REDIS_KEY, VALIDATE_RESPONSE + randVal, 20).equals(OK)
-              && get(VALIDATE_REDIS_KEY).equals(VALIDATE_RESPONSE + randVal);
-    } catch (Exception e) {
-      log.error("Error connecting to Redis", e);
-      return false;
-    } finally {
-      close();
-    }
+    Mono<String> response = reactive.ping();
+    return response.block().equalsIgnoreCase("pong");
   }
  
   /**

@@ -10,9 +10,10 @@ dataStore:
   driver: com.mysql.cj.jdbc.Driver
 
 cachingDatabase:
-  databaseType: redis
-  host: 127.0.0.1
+  databaseType: S3
+  host: channels-redis.dev.6si.com
   port: 6379
+  bucket: 6si-loki-dev
 
 server:
   applicationConnectors:

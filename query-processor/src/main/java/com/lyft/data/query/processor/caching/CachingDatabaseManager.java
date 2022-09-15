@@ -34,9 +34,18 @@ public class CachingDatabaseManager {
    * Configure a connection with the caching database.
    */
   public void start() {
-    if (configuration.getCachingDatabase() != null
-        && configuration.getCachingDatabase().getDatabaseType().equalsIgnoreCase("redis")) {
-      client = new RedisConnection(configuration);
+    if (configuration.getCachingDatabase() != null) {
+      if (DatabaseType.valueOf(
+          configuration.getCachingDatabase().getDatabaseType().toUpperCase()) 
+          == DatabaseType.REDIS) {
+        client = new RedisConnection(configuration);
+      } else if (DatabaseType.valueOf(
+          configuration.getCachingDatabase().getDatabaseType().toUpperCase()) 
+          == DatabaseType.S3) {
+        client = new S3Connection(configuration);
+      } else {
+        client = null;
+      }
     }
   }
   
@@ -143,10 +152,10 @@ public class CachingDatabaseManager {
    * @param keys Keys to delete
    * @return Number of keys deleted
    */
-  public long deleteKeys(String... keys) {
+  public void deleteKeys(String... keys) {
     try {
       client.open();
-      return client.deleteKeys(keys);
+      client.deleteKeys(keys);
     } finally {
       client.close();
     }
@@ -165,5 +174,10 @@ public class CachingDatabaseManager {
    */
   public void shutdown() {
     client.shutdown();
+  }
+
+  enum DatabaseType {
+    S3,
+    REDIS
   }
 }

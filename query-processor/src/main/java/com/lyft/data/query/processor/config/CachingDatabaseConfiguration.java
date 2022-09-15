@@ -11,4 +11,5 @@ public class CachingDatabaseConfiguration {
   private String databaseType;
   private String host;
   private int port;
+  private String bucket;
 }
