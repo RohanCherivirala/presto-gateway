@@ -23,7 +23,7 @@ import org.asynchttpclient.Dsl;
  */
 public class QueryProcessorProviderModule 
     extends AppModule<QueryProcessorConfiguration, Environment> {
-  public static final int QUEUE_SIZE = 10;
+  public static final int QUEUE_SIZE = 20;
 
   private final ThreadPoolExecutor queue;
   private final AsyncHttpClient httpClient;
@@ -44,7 +44,7 @@ public class QueryProcessorProviderModule
     httpClient = Dsl.asyncHttpClient();
 
     // Set up thread pool
-    queue = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+    queue = (ThreadPoolExecutor) Executors.newFixedThreadPool(QUEUE_SIZE);
 
     // Set up managers
     errorManager = new ErrorManager();
