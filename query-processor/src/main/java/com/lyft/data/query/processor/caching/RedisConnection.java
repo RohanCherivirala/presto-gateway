@@ -2,37 +2,33 @@ package com.lyft.data.query.processor.caching;
 
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
-import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisConnectionException;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SetArgs;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.async.RedisAsyncCommands;
-import io.lettuce.core.api.reactive.RedisReactiveCommands;
-
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.lettuce.core.cluster.api.reactive.RedisAdvancedClusterReactiveCommands;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 public class RedisConnection extends CachingDatabaseConnection {
-  public static final String VALIDATE_REDIS_KEY = "validate_redis_key";
-  public static final String VALIDATE_RESPONSE = "validated_";
-
   // In seconds
   public static final int DEFAULT_EXPIRATION_TIME_SECONDS = 600;
 
   public static final String OK = "OK";
 
-  private static RedisClient client;
-  private StatefulRedisConnection<String, String> statefulConnection;
-  private RedisReactiveCommands<String, String> reactive;
-  private RedisAsyncCommands<String, String> asyncCommands;
+  private static RedisClusterClient client;
+  private StatefulRedisClusterConnection<String, String> statefulConnection;
+  private RedisAdvancedClusterReactiveCommands<String, String> reactive;
+  private RedisAdvancedClusterAsyncCommands<String, String> asyncCommands;
 
   public RedisConnection(QueryProcessorConfiguration configuration) {
     try {
-      client = RedisClient.create(RedisURI.create(
-          configuration.getCachingDatabase().getHost(),
-          configuration.getCachingDatabase().getPort()));
+      client = RedisClusterClient.create(RedisURI.create(
+        configuration.getCachingDatabase().getHost(), 
+        configuration.getCachingDatabase().getPort()));
 
       startup();
 
