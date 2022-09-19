@@ -19,10 +19,10 @@ public class TestGatewayHa {
 
   private final OkHttpClient httpClient = new OkHttpClient();
 
-  final int routerPort = 20000 + (int) (Math.random() * 1000);
-  final int backendPort = 21000 + (int) (Math.random() * 1000);
-  final int backend1Port = 21000 + (int) (Math.random() * 1000);
-  final int backend2Port = 21000 + (int) (Math.random() * 1000);
+  final int routerPort = 20000 + (int) (Math.random() * 900);
+  final int backendPort = routerPort + 1;
+  final int backend1Port = routerPort + 2;
+  final int backend2Port = routerPort + 3;
 
   private WireMockServer backend =
       new WireMockServer(WireMockConfiguration.options().port(backendPort));
