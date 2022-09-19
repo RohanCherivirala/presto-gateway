@@ -24,7 +24,7 @@ public class ProcessorManagedApp implements Managed {
   @Inject private RequestProcessingManager requestManager;
   @Inject private ThreadPoolExecutor queue;
 
-  private ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
+  private ExecutorService singleThreadExecutor = Executors.newCachedThreadPool();
 
   @Override
   public void start() {
