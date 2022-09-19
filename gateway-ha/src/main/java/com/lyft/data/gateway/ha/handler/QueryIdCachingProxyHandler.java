@@ -157,6 +157,11 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     return targetLocation;
   }
 
+  /**
+   * Extracts the queryId from the server requests if it is present.
+   * @param request The request made
+   * @return The queryId (if present)
+   */
   protected String extractQueryIdIfPresent(HttpServletRequest request) {
     String path = request.getRequestURI();
     String queryParams = request.getQueryString();
@@ -187,13 +192,19 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     if (queryId == null && !Strings.isNullOrEmpty(request.getHeader(HttpHeaders.REFERER))) {
       log.debug("Trying to extract query id from referer [{}]", 
           request.getHeader(HttpHeaders.REFERER));
-      queryId = extractQueryIdIfPresent(request.getHeader(HttpHeaders.REFERER));
+      queryId = extractQueryIdFromReferer(request.getHeader(HttpHeaders.REFERER));
     }
 
     log.debug("query id in url [{}]", queryId);
     return queryId;
   }
 
+  /**
+   * Extracts the queryId from the path of a request and the parameters of the query.
+   * @param path Path of request
+   * @param queryParams Query parameters
+   * @return The queryId (if present)
+   */
   protected String extractQueryIdIfPresent(String path, String queryParams) {
     if (path == null) {
       return null;
@@ -220,7 +231,12 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     return queryId;
   }
 
-  protected String extractQueryIdIfPresent(String referer) {
+  /**
+   * Extracts the queryId from the referer of the request.
+   * @param referer Request referer
+   * @return The queryId of the request
+   */
+  protected String extractQueryIdFromReferer(String referer) {
     try {
       URL refUrl = new URL(referer);
       if (refUrl.getPath().startsWith(PRESTO_UI_PATH)) {
