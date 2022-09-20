@@ -1,10 +1,16 @@
 package com.lyft.data.query.processor.caching;
 
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
+import io.lettuce.core.ReadFrom;
 import io.lettuce.core.RedisConnectionException;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SetArgs;
+import io.lettuce.core.cluster.ClusterClientOptions;
+import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
@@ -29,6 +35,17 @@ public class RedisConnection extends CachingDatabaseConnection {
       client = RedisClusterClient.create(RedisURI.create(
         configuration.getCachingDatabase().getHost(), 
         configuration.getCachingDatabase().getPort()));
+      
+      // Enable the mapping of connected nodes to be dynamically updated
+      ClusterTopologyRefreshOptions topologyRefreshOptions = 
+          ClusterTopologyRefreshOptions.builder()
+          .enableAllAdaptiveRefreshTriggers()
+          .adaptiveRefreshTriggersTimeout(Duration.ofSeconds(30))
+          .build();
+      
+      client.setOptions(ClusterClientOptions.builder()
+                        .topologyRefreshOptions(topologyRefreshOptions)
+                        .build());
 
       startup();
 
@@ -47,6 +64,8 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public void startup() {
     statefulConnection = client.connect();
+    statefulConnection.setReadFrom(ReadFrom.REPLICA);
+
     reactive = statefulConnection.reactive();
     asyncCommands = statefulConnection.async();
   }
