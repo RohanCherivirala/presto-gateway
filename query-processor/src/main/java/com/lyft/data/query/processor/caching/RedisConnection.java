@@ -1,8 +1,5 @@
 package com.lyft.data.query.processor.caching;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 import io.lettuce.core.ReadFrom;
@@ -15,6 +12,9 @@ import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import io.lettuce.core.cluster.api.reactive.RedisAdvancedClusterReactiveCommands;
+
+import java.time.Duration;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
