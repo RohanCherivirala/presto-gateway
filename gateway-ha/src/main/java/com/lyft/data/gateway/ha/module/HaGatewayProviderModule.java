@@ -4,6 +4,7 @@ import com.codahale.metrics.Meter;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.lyft.data.baseapp.AppModule;
+import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.gateway.ha.config.HaGatewayConfiguration;
 import com.lyft.data.gateway.ha.config.RequestRouterConfiguration;
 import com.lyft.data.gateway.ha.handler.QueryIdCachingServerHandler;
@@ -47,6 +48,10 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
     cachingDatabaseManager = QueryProcessorProviderModule.staticCachingManager;
     requestProcessingManager = QueryProcessorProviderModule.staticRequestManager;
     queryCachingManager = QueryProcessorProviderModule.staticQueryCachingManager;
+
+    // Set application retry path
+    BaseHandler.RETRY_PATH = configuration.getAppDomain() + ":"
+        + configuration.getRequestRouter().getPort();
   }
 
   protected ServerHandler getProxyHandler() {

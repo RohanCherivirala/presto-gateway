@@ -1,3 +1,5 @@
+appDomain: http://localhost
+
 requestRouter:
   port: 8080
   name: prestoRouter
