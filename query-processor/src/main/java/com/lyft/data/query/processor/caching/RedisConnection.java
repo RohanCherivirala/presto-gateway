@@ -64,7 +64,7 @@ public class RedisConnection extends CachingDatabaseConnection {
    */
   public void startup() {
     statefulConnection = client.connect();
-    statefulConnection.setReadFrom(ReadFrom.REPLICA);
+    statefulConnection.setReadFrom(ReadFrom.REPLICA_PREFERRED);
 
     reactive = statefulConnection.reactive();
     asyncCommands = statefulConnection.async();
