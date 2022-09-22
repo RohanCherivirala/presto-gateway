@@ -51,7 +51,7 @@ public class HaGatewayProviderModule extends AppModule<HaGatewayConfiguration, E
 
     // Set application retry path
     BaseHandler.RETRY_PATH = configuration.getAppDomain() + ":"
-        + configuration.getRequestRouter().getPort();
+        + configuration.getRequestRouter().getPort() + BaseHandler.V1_STATEMENT_PATH;
   }
 
   protected ServerHandler getProxyHandler() {
