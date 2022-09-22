@@ -193,8 +193,8 @@ public class QueryCachingManager {
     HashMap<String, String> headers = getHeadersFromCache(getInitialRequestKey(transactionId));
 
     for (Entry<String, String> header : headers.entrySet()) {
-      if (header.getKey().contains(BaseHandler.PRESTO)
-          || header.getKey().contains(BaseHandler.TRINO)) {
+      if (header.getKey().toLowerCase().contains(BaseHandler.PRESTO)
+          || header.getKey().toLowerCase().contains(BaseHandler.TRINO)) {
         builder.addHeader(header.getKey(), header.getValue());
       }
     }

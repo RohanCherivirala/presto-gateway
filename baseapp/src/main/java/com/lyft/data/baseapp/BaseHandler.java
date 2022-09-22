@@ -36,10 +36,12 @@ public abstract class BaseHandler {
   public static final String CLIENT_SERVER_REDIRECT = "Gateway-Client-Server-Redirected";
   public static final String RETRY_BACKEND_EXCLUSION = "Gateway-Retry-Backend-To-Exclude";
   public static final String RETRY_TRANSACTION_ID = "Gateway-Retry-Transaction-Id";
+
+  public static boolean REDIS_ACTIVE = true;
   public static String RETRY_PATH = "http://localhost:8080" + V1_STATEMENT_PATH;
 
-  public static final String PRESTO = "Presto";
-  public static final String TRINO = "Trino";
+  public static final String PRESTO = "presto";
+  public static final String TRINO = "trino";
 
   public static final String ADHOC_ROUTING_GROUP = "adhoc";
   public static final int QUERY_TEXT_LENGTH_FOR_HISTORY = 200;

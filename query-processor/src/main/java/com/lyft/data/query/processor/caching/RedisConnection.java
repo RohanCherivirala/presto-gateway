@@ -1,9 +1,12 @@
 package com.lyft.data.query.processor.caching;
 
+import com.lyft.data.baseapp.BaseHandler;
 import com.lyft.data.query.processor.config.QueryProcessorConfiguration;
 
 import io.lettuce.core.ReadFrom;
+import io.lettuce.core.RedisChannelHandler;
 import io.lettuce.core.RedisConnectionException;
+import io.lettuce.core.RedisConnectionStateListener;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.cluster.ClusterClientOptions;
@@ -46,6 +49,19 @@ public class RedisConnection extends CachingDatabaseConnection {
       client.setOptions(ClusterClientOptions.builder()
                         .topologyRefreshOptions(topologyRefreshOptions)
                         .build());
+
+      // Add listener on connected and disconnect
+      client.addListener(new RedisConnectionStateListener() {
+        @Override
+        public void onRedisConnected(RedisChannelHandler<?, ?> connection) {
+          BaseHandler.REDIS_ACTIVE = true;
+        }
+
+        @Override
+        public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
+          BaseHandler.REDIS_ACTIVE = false;
+        }
+      });
 
       startup();
 

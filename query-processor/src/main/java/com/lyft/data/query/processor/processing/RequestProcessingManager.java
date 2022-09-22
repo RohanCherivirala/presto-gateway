@@ -142,7 +142,7 @@ public class RequestProcessingManager {
         // Attempt to retury query if possible
         if (isRetryNeccessary(errorCode, errorName, errorType)
             && queryCachingManager.canRetry(request.getQueryId())) {
-          retryRequest(request.getQueryId());
+          retryRequest(request.getQueryId(), request.getBackendAddress());
         } else {
           // Query will not be retried
           requestCompleted(request.getQueryId(), false);
@@ -249,7 +249,8 @@ public class RequestProcessingManager {
    * @return If the query should be retried
    */
   public boolean isRetryNeccessary(int errorCode, String errorName, String errorType) {
-    return errorManager.shouldRetry(errorCode, errorName);
+    return true;
+    // return errorManager.shouldRetry(errorCode, errorName);
   }
 
   /**

@@ -15,6 +15,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
+import javax.ws.rs.HttpMethod;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,7 +39,8 @@ public class RequestFilter implements Filter {
 
     if (req.getHeader(BaseHandler.CLIENT_SERVER_REDIRECT) == null 
           && !reqUri.startsWith(BaseHandler.CLIENT_SERVER_PREFIX)
-          && ServerHandler.isStatementPath(req.getRequestURI())) {
+          && ServerHandler.isStatementPath(req.getRequestURI())
+          && req.getMethod().equals(HttpMethod.GET)) {
       // Forward to client server initially
       reqUri = ServerHandler.CLIENT_SERVER_PREFIX + reqUri;
       req.getRequestDispatcher(reqUri).forward(request, response);
