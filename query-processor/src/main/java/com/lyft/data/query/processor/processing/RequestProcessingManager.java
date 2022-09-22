@@ -249,7 +249,8 @@ public class RequestProcessingManager {
    * @return If the query should be retried
    */
   public boolean isRetryNeccessary(int errorCode, String errorName, String errorType) {
-    return errorManager.shouldRetry(errorCode, errorName);
+    return true;
+    // return errorManager.shouldRetry(errorCode, errorName);
   }
 
   /**
