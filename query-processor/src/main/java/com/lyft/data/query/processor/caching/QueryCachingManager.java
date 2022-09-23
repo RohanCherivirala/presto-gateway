@@ -31,8 +31,21 @@ import org.asynchttpclient.Response;
 public class QueryCachingManager {
   private final ObjectMapper objectMapper = new ObjectMapper();
   
+  /*
+   * Initial query id of any request. A retried request 
+   * will have the same transaction id.
+   */
   public static final String TRANSACTION_ID = "transaction-id";
+
+  /*
+   * The number of retries that have been conducted.
+   */
   public static final String RETRIES = "retries";
+
+  /*
+   * The id of the queryId in which this request was completed. Its 
+   * existence means that the query has finished.
+   */
   public static final String COMPLETED_ID = "completed-id";
   
   private CachingDatabaseManager cachingManager;
