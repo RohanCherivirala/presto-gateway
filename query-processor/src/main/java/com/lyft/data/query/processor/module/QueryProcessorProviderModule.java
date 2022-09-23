@@ -15,6 +15,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.AsyncHttpClientConfig;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.asynchttpclient.Dsl;
 
 /**
@@ -40,11 +42,15 @@ public class QueryProcessorProviderModule
   public QueryProcessorProviderModule(QueryProcessorConfiguration config, Environment env) {
     super(config, env);
 
-    // Set up http client
-    httpClient = Dsl.asyncHttpClient();
+    // Set up http client (TODO: Add more properties)
+    AsyncHttpClientConfig clientConfig = new DefaultAsyncHttpClientConfig.Builder()
+        .setMaxRequestRetry(3)
+        .build();
+
+    httpClient = Dsl.asyncHttpClient(clientConfig);
 
     // Set up thread pool
-    queue = (ThreadPoolExecutor) Executors.newFixedThreadPool(QUEUE_SIZE);
+    queue = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 
     // Set up managers
     errorManager = new ErrorManager();

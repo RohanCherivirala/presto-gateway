@@ -212,13 +212,15 @@ public class QueryCachingManager {
    * @param queryId Query Id
    */
   public void fillResponseForClient(HttpServletRequest req,
-      HttpServletResponse resp, String queryId) throws IOException {
+      HttpServletResponse resp, String queryId, Boolean completed) throws IOException {
     String responseBody = "";
     String transactionId = getTransactionId(queryId);
 
     if (cachingManager.getFromHash(getActiveQueriesKey(transactionId),
         COMPLETED).equals(Boolean.toString(true))) {
-      // Complete response has been recieved
+      // Query is completed and complete response has been received
+      completed = Boolean.TRUE;
+
       String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString())
                                        .replace(transactionId, queryId);
 
@@ -231,6 +233,8 @@ public class QueryCachingManager {
       cachingManager.deleteKeys(cacheKey);
     } else {
       // Query is still being processed
+      completed = Boolean.FALSE;
+      
       responseBody = cachingManager.getFromHash(
         getInitalResponseKey(transactionId),
         CachingDatabaseManager.BODY_FIELD);

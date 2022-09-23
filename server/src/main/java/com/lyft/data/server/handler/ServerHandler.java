@@ -4,7 +4,6 @@ import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
 import com.lyft.data.baseapp.BaseHandler;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
@@ -87,7 +86,8 @@ public class ServerHandler extends BaseHandler {
    * @param resp Response sent back to client
    * @return If the response is filled properly
    */
-  public boolean fillResponseForQueryFromCache(HttpServletRequest req, HttpServletResponse resp) {
+  public boolean fillResponseForQueryFromCache(HttpServletRequest req, HttpServletResponse resp,
+      Boolean completed) {
     return false;
   }
 

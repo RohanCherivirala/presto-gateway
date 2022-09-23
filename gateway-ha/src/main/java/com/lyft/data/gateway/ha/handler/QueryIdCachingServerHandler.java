@@ -217,12 +217,19 @@ public class QueryIdCachingServerHandler extends ServerHandler {
     super.postConnectionHook(request, response, buffer, offset, length, callback);
   }
 
+  /**
+   * Fills a response for a query from the cache.
+   * @param req Http request
+   * @param resp Http response
+   * @return Boolean detailing if the operation finished successfully
+   */
   @Override
-  public boolean fillResponseForQueryFromCache(HttpServletRequest req, HttpServletResponse resp) {
+  public boolean fillResponseForQueryFromCache(HttpServletRequest req, HttpServletResponse resp,
+      Boolean completed) {
     String queryId = extractQueryIdIfPresent(removeClientFromUri(req.getRequestURI()), req);
 
     try {
-      queryCachingManager.fillResponseForClient(req, resp, queryId);
+      queryCachingManager.fillResponseForClient(req, resp, queryId, completed);
       return true;
     } catch (Exception e) {
       log.error("Error occured when returning response from cache for [{}]", queryId, e);

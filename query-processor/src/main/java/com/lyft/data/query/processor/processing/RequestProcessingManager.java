@@ -121,6 +121,19 @@ public class RequestProcessingManager {
         output = new String(body);
       }
 
+      // If a non-200 resposne is received
+      if (response.getStatusCode() != 200) {
+        // Error occured while processing query
+        if (queryCachingManager.canRetry(request.getQueryId())) {
+          retryRequest(request.getQueryId(), request.getBackendAddress());
+        } else {
+          // Query will not be retried
+          requestCompleted(request.getQueryId(), false);
+        }
+
+        return;
+      }
+
       JsonNode root = OBJECT_MAPPER.readTree(output);
 
       if (!root.at(ERROR_PATH).isMissingNode()) {

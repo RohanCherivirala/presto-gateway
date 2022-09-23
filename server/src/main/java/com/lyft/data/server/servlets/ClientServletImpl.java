@@ -1,9 +1,12 @@
 package com.lyft.data.server.servlets;
 
+import com.google.inject.Inject;
 import com.lyft.data.server.handler.ServerHandler;
 import com.lyft.data.server.wrapper.MultiReadHttpServletRequest;
 
 import java.io.IOException;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -15,6 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientServletImpl extends HttpServlet {
+  public static final int GET_RESPONSE_DELAY = 1;
+
+  @Inject ScheduledThreadPoolExecutor scheduledPool;
+
   private ServerHandler serverHandler;
 
   public void setServerHandler(ServerHandler serverHandler) {
@@ -42,13 +49,26 @@ public class ClientServletImpl extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    if (serverHandler.fillResponseForQueryFromCache(req, resp)) {
+    Boolean completed = Boolean.FALSE;
+    if (serverHandler.fillResponseForQueryFromCache(req, resp, completed)) {
       resp.setStatus(HttpServletResponse.SC_OK);
+
+      if (!completed.booleanValue()) {
+        // Delay GET response
+        scheduledPool.schedule(() -> {
+          try {
+            resp.flushBuffer();
+          } catch (IOException e) {
+            log.error("Error occurred while responding to {}", req.getRequestURI(), e);
+          }
+        }, GET_RESPONSE_DELAY, TimeUnit.SECONDS);
+      } else {
+        resp.flushBuffer();
+      }
     } else {
       resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+      resp.flushBuffer();
     }
-
-    resp.flushBuffer();
   }
 
   /**
