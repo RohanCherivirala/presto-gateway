@@ -161,7 +161,7 @@ public class QueryCachingManager {
    * @param queryId Query id being retried
    */
   public void cacheRetriedRequest(String queryId, String transactionId) {
-    cacheRetryRequest(queryId, transactionId, 1);
+    cacheRetriedRequest(queryId, transactionId, 1);
   }
 
   /**
@@ -171,7 +171,7 @@ public class QueryCachingManager {
    * @param transactionId Transaction id of retried query
    * @param incrementAmount Amount to increment by
    */
-  public void cacheRetryRequest(String queryId, String transactionId, int incrementAmount) {
+  public void cacheRetriedRequest(String queryId, String transactionId, int incrementAmount) {
     // Create new entry for retry
     cachingManager.setInHash(getActiveQueriesKey(queryId), 
         TRANSACTION_ID, transactionId);
@@ -221,9 +221,7 @@ public class QueryCachingManager {
       // Query is completed and complete response has been received
       completed = Boolean.TRUE;
 
-      String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString())
-                                       .replace(transactionId, queryId);
-
+      String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString());
       String cacheKey = getIncrementalCacheKey(correctedUri);
       
       fillResponseHeader(getHeadersFromCache(cacheKey), resp);
