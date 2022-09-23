@@ -1,4 +1,4 @@
-package com.lyft.data.server.modules;
+package com.lyft.data.server.module;
 
 import com.google.inject.Provides;
 import com.google.inject.Singleton;

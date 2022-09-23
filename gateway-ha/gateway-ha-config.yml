@@ -27,6 +27,7 @@ server:
 
 modules:
   - com.lyft.data.query.processor.module.QueryProcessorProviderModule
+  - com.lyft.data.server.module.ServerProviderModule
   - com.lyft.data.gateway.ha.module.HaGatewayProviderModule
   - com.lyft.data.gateway.ha.module.ClusterStateListenerModule
 
@@ -34,6 +35,7 @@ managedApps:
   - com.lyft.data.gateway.ha.GatewayManagedApp
   - com.lyft.data.gateway.ha.clustermonitor.ActiveClusterMonitor
   - com.lyft.data.query.processor.ProcessorManagedApp
+  - package com.lyft.data.server.ServerManagedApp
 
 # Logging settings.
 logging:
