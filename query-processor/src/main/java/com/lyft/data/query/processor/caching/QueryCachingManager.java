@@ -223,7 +223,7 @@ public class QueryCachingManager {
       String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString())
                                        .replace(transactionId, completedId);
       String cacheKey = getIncrementalCacheKey(correctedUri);
-      
+
       fillResponseHeader(getHeadersFromCache(cacheKey), resp);
       responseBody = cachingManager.getFromHash(cacheKey, CachingDatabaseManager.BODY_FIELD);
 
@@ -240,7 +240,7 @@ public class QueryCachingManager {
 
     if (Strings.isNullOrEmpty(responseBody)) {
       throw new InvalidCacheLoadException("No matching entry in cache for transactionId"
-          + transactionId);
+          + completedId);
     }
 
     fillResponseBody(responseBody.getBytes(Charset.defaultCharset()), resp);
@@ -325,8 +325,19 @@ public class QueryCachingManager {
    */
   private String getIncrementalCacheKey(String nextUri) {
     URI uri = URI.create(nextUri);
+
+    // Reformat key to work for both trino and presto
+    String uriPath = uri.getPath();
+    String[] sections = uriPath.split("/");
+
+    if (sections.length >= 6) {
+      // Exclude random character sequence from trino requests
+      uriPath = String.join("/", sections[0], sections[1], 
+          sections[2], sections[3], sections[4], sections[6]);
+    }
+
     return CachingDatabaseManager.QUERY_CACHE_PREFIX.replace("/", "")
-        + uri.getPath() + CachingDatabaseManager.CACHED_RESONSE_SUFFIX;
+        + uriPath + CachingDatabaseManager.CACHED_RESONSE_SUFFIX;
   }
 
   /**
