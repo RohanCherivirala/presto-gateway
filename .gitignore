@@ -3,3 +3,5 @@
 **/target/*
 .DS_Store
 *.iml
+.vscode/settings.json
+**/__pycache__
