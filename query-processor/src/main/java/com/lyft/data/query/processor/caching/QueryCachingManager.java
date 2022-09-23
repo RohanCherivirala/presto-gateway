@@ -31,9 +31,9 @@ import org.asynchttpclient.Response;
 public class QueryCachingManager {
   private final ObjectMapper objectMapper = new ObjectMapper();
   
-  public static final String COMPLETED = "completed";
   public static final String TRANSACTION_ID = "transaction-id";
   public static final String RETRIES = "retries";
+  public static final String COMPLETED_ID = "completed-id";
   
   private CachingDatabaseManager cachingManager;
 
@@ -52,8 +52,7 @@ public class QueryCachingManager {
    */
   public void cacheIncrementalResponse(ClusterRequest request, Response response) {
     String responseString = response.getResponseBody();
-    String cacheKey = getIncrementalCacheKey(request.getNextUri())
-        .replace(request.getQueryId(), getTransactionId(request.getQueryId()));
+    String cacheKey = getIncrementalCacheKey(request.getNextUri());
 
     try {
       // Cache response headers
@@ -84,7 +83,6 @@ public class QueryCachingManager {
     try {
       // Cache entry in active queries
       String cacheKey = getActiveQueriesKey(queryId);
-      cachingManager.setInHash(cacheKey, COMPLETED, Boolean.toString(false));
       cachingManager.setInHash(cacheKey, TRANSACTION_ID, queryId);
       cachingManager.setInHash(cacheKey, RETRIES, "0");
 
@@ -140,7 +138,7 @@ public class QueryCachingManager {
    */
   public void cacheRequestCompleted(String queryId) {
     cachingManager.setInHash(getActiveQueriesKey(getTransactionId(queryId)),
-        COMPLETED, Boolean.toString(true));
+        COMPLETED_ID, queryId);
   }
 
   /**
@@ -215,13 +213,15 @@ public class QueryCachingManager {
       HttpServletResponse resp, String queryId, Boolean completed) throws IOException {
     String responseBody = "";
     String transactionId = getTransactionId(queryId);
+    String completedId = cachingManager.getFromHash(getActiveQueriesKey(transactionId), 
+        COMPLETED_ID);
 
-    if (cachingManager.getFromHash(getActiveQueriesKey(transactionId),
-        COMPLETED).equals(Boolean.toString(true))) {
+    if (!Strings.isNullOrEmpty(completedId)) {
       // Query is completed and complete response has been received
       completed = Boolean.TRUE;
 
-      String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString());
+      String correctedUri = BaseHandler.removeClientFromUri(req.getRequestURL().toString())
+                                       .replace(transactionId, completedId);
       String cacheKey = getIncrementalCacheKey(correctedUri);
       
       fillResponseHeader(getHeadersFromCache(cacheKey), resp);
