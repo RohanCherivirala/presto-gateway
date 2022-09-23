@@ -35,7 +35,7 @@ managedApps:
   - com.lyft.data.gateway.ha.GatewayManagedApp
   - com.lyft.data.gateway.ha.clustermonitor.ActiveClusterMonitor
   - com.lyft.data.query.processor.ProcessorManagedApp
-  - package com.lyft.data.server.ServerManagedApp
+  - com.lyft.data.server.ServerManagedApp
 
 # Logging settings.
 logging:
