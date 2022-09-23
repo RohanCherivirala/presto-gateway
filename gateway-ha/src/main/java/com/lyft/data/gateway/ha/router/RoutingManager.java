@@ -103,7 +103,7 @@ public abstract class RoutingManager {
     List<ProxyBackendConfiguration> backends = this.gatewayBackendManager.getActiveAdhocBackends();
 
     if (backends.size() == 0) {
-      throw new IllegalStateException("Number of active backends found zero");
+      throw new IllegalStateException("No adhoc backends are currently available");
     }
 
     if (!routingGroups.get("adhoc")) {
@@ -134,7 +134,8 @@ public abstract class RoutingManager {
 
     if (backends.isEmpty()
         || !routingGroups.get(routingGroup)) {
-      log.debug("Routing group {} is currently paused or has no active backends", routingGroup);
+      log.warn("Routing group {} is currently paused or has no active backends, "
+          + "routing {} to adhoc", routingGroup);
       return provideAdhocBackend();
     }
 

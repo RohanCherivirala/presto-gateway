@@ -2,8 +2,10 @@ package com.lyft.data.server.handler;
 
 import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
+import com.google.common.net.HttpHeaders;
 import com.lyft.data.baseapp.BaseHandler;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
@@ -137,7 +139,7 @@ public class ServerHandler extends BaseHandler {
    * @param request {@link HttpServletRequest} sent by client
    * @return Query id
    */
-  public String extractQueryIdIfPresent(String path, HttpServletRequest request) {
+  protected String extractQueryIdIfPresent(String path, HttpServletRequest request) {
     String queryParams = request.getQueryString();
     try {
       String queryText = CharStreams.toString(request.getReader());
@@ -160,12 +162,32 @@ public class ServerHandler extends BaseHandler {
     } catch (Exception e) {
       log.error("Error extracting query payload from request", e);
     }
+    
+    log.debug("Trying to extract query id from path [{}] or queryString [{}]", path, queryParams);
+    String queryId = extractQueryIdIfPresent(path, queryParams);
+    if (queryId == null && !Strings.isNullOrEmpty(request.getHeader(HttpHeaders.REFERER))) {
+      log.debug("Trying to extract query id from referer [{}]", 
+          request.getHeader(HttpHeaders.REFERER));
+      queryId = extractQueryIdFromReferer(request.getHeader(HttpHeaders.REFERER));
+    }
+
+    log.debug("query id in url [{}]", queryId);
+    return queryId;
+  }
+
+  /**
+   * Extracts the queryId from the path of a request and the parameters of the query.
+   * @param path Path of request
+   * @param queryParams Query parameters
+   * @return The queryId (if present)
+   */
+  protected String extractQueryIdIfPresent(String path, String queryParams) {
     if (path == null) {
       return null;
     }
+
     String queryId = null;
 
-    log.debug("trying to extract query id from path [{}] or queryString [{}]", path, queryParams);
     if (path.startsWith(V1_STATEMENT_PATH) || path.startsWith(V1_QUERY_PATH)) {
       String[] tokens = path.split("/");
       if (tokens.length >= 4) {
@@ -181,8 +203,26 @@ public class ServerHandler extends BaseHandler {
     } else if (path.startsWith(PRESTO_UI_PATH)) {
       queryId = queryParams;
     }
-    log.debug("query id in url [{}]", queryId);
+
     return queryId;
+  }
+
+  /**
+   * Extracts the queryId from the referer of the request.
+   * @param referer Request referer
+   * @return The queryId of the request
+   */
+  protected String extractQueryIdFromReferer(String referer) {
+    try {
+      URL refUrl = new URL(referer);
+      if (refUrl.getPath().startsWith(PRESTO_UI_PATH)) {
+        return refUrl.getQuery();
+      }
+    } catch (Exception e) {
+      log.debug("Unable to extract query id from referer");
+    }
+
+    return null;
   }
 
   /**
