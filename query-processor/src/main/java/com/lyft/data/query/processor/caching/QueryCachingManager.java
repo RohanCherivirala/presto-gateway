@@ -52,7 +52,8 @@ public class QueryCachingManager {
    */
   public void cacheIncrementalResponse(ClusterRequest request, Response response) {
     String responseString = response.getResponseBody();
-    String cacheKey = getIncrementalCacheKey(request.getNextUri());
+    String cacheKey = getIncrementalCacheKey(request.getNextUri())
+        .replace(request.getQueryId(), getTransactionId(request.getQueryId()));
 
     try {
       // Cache response headers
