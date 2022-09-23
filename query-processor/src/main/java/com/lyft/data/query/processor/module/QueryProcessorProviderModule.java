@@ -42,7 +42,7 @@ public class QueryProcessorProviderModule
   public QueryProcessorProviderModule(QueryProcessorConfiguration config, Environment env) {
     super(config, env);
 
-    // Set up http client (TODO: Add more properties)
+    // Set up http client (TODO: Add more properties if necessary)
     AsyncHttpClientConfig clientConfig = new DefaultAsyncHttpClientConfig.Builder()
         .setMaxRequestRetry(3)
         .build();
